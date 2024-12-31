@@ -1,0 +1,34 @@
+cmake_minimum_required(VERSION 3.20)
+
+project(roguelike LANGUAGES C)
+
+add_subdirectory(vendor/SDL2 EXCLUDE_FROM_ALL)
+add_subdirectory(vendor/SDL_image EXCLUDE_FROM_ALL)
+
+add_executable(
+    ${PROJECT_NAME}
+    WIN32
+    src/main.c
+)
+
+# SDL2::SDL2main may or may not be available. It is e.g. required by Windows GUI applications
+if(TARGET SDL2::SDL2main)
+    # It has an implicit dependency on SDL2 functions, so it MUST be added before SDL2::SDL2 (or SDL2::SDL2-static)
+    target_link_libraries(${PROJECT_NAME} PRIVATE SDL2::SDL2main)
+endif()
+
+
+target_link_libraries(${PROJECT_NAME} PRIVATE SDL2::SDL2 SDL2_image::SDL2_image)
+
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    $<TARGET_FILE:SDL2>
+    $<TARGET_FILE_DIR:${PROJECT_NAME}>
+)
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    $<TARGET_FILE:SDL2_image>
+    $<TARGET_FILE_DIR:${PROJECT_NAME}>
+)
