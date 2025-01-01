@@ -3,6 +3,10 @@
 #include <stdbool.h>
 #include <assert.h>
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 #include <SDL.h>
 #include <SDL_image.h>
 
@@ -14,6 +18,10 @@
 
 int main(int argc, char *argv[])
 {
+    #ifdef _WIN32
+    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
+    #endif
+
     rg_app app;
     app_create(&app);
 
@@ -32,7 +40,7 @@ int main(int argc, char *argv[])
         80,
         50,
         &tileset,
-        "roguelike in c",
+        "roguelike",
         true);
 
     rg_console console;

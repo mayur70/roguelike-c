@@ -14,7 +14,7 @@ void app_create(rg_app *app)
         panic("failed to initalize SDL");
 
     int img_flags = IMG_INIT_PNG;
-    if (IMG_Init(img_flags) & img_flags == 0)
+    if ((IMG_Init(img_flags) & img_flags) == 0)
         panic("failed to initialize SDL_image");
 
     app->window = SDL_CreateWindow(
