@@ -30,7 +30,7 @@ void app_create(rg_app *app)
     app->renderer = SDL_CreateRenderer(
         app->window,
         -1,
-        SDL_RENDERER_PRESENTVSYNC);
+        0);
     if (app->renderer == NULL)
         panic("failed to create renderer");
 }

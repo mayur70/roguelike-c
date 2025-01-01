@@ -16,6 +16,9 @@
 #include "app.h"
 #include "terminal.h"
 
+#define DESIRED_FPS 20.0
+#define DESIRED_FRAME_RATE ((1.0 / DESIRED_FPS) *  1000.0)
+
 typedef enum rg_action_type
 {
     ACTION_NONE,
@@ -131,13 +134,12 @@ int main(int argc, char *argv[])
     bool running = true;
     while (running)
     {
-        SDL_RenderClear(app.renderer);
-        console_print(&console, player_x, player_y, '@');
-
-        SDL_RenderPresent(app.renderer);
 
         SDL_Event event = {0};
         SDL_WaitEvent(&event);
+
+        Uint64 frame_start = SDL_GetPerformanceCounter();
+
         rg_action action;
         event_dispatch(&event, &action);
 
@@ -151,6 +153,18 @@ int main(int argc, char *argv[])
         }
         else if (action.type == ACTION_ESCAPE || action.type == ACTION_QUIT)
             running = false;
+
+        SDL_RenderClear(app.renderer);
+        console_print(&console, player_x, player_y, '@');
+
+        SDL_RenderPresent(app.renderer);
+
+        Uint64 frame_end = SDL_GetPerformanceCounter();
+        double dt = (frame_end - frame_start) / (double)SDL_GetPerformanceFrequency() * 1000.0;
+
+        Uint32 sleep_time = (Uint32)floor(DESIRED_FRAME_RATE - dt);
+        // SLEEP
+        SDL_Delay(sleep_time);
     }
 
     console_destroy(&console);
