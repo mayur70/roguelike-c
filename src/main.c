@@ -16,14 +16,91 @@
 #include "app.h"
 #include "terminal.h"
 
+typedef enum rg_action_type
+{
+    ACTION_NONE,
+    ACTION_QUIT,
+    ACTION_ESCAPE,
+    ACTION_MOVEMENT,
+} rg_action_type;
+
+typedef struct rg_action
+{
+    rg_action_type type;
+    union
+    {
+        struct
+        {
+            int dx, dy;
+        };
+    };
+} rg_action;
+
+void event_dispatch(SDL_Event *event, rg_action *action)
+{
+    // Default value
+    action->type = ACTION_NONE;
+
+    switch (event->type)
+    {
+    case SDL_QUIT:
+        action->type = ACTION_QUIT;
+        break;
+    case SDL_KEYDOWN:
+    {
+        switch (event->key.keysym.sym)
+        {
+        case SDLK_UP:
+        case SDLK_w:
+            action->type = ACTION_MOVEMENT;
+            action->dx = 0;
+            action->dy = -1;
+            break;
+        case SDLK_DOWN:
+        case SDLK_s:
+            action->type = ACTION_MOVEMENT;
+            action->dx = 0;
+            action->dy = 1;
+            break;
+        case SDLK_LEFT:
+        case SDLK_a:
+            action->type = ACTION_MOVEMENT;
+            action->dx = -1;
+            action->dy = 0;
+            break;
+        case SDLK_RIGHT:
+        case SDLK_d:
+            action->type = ACTION_MOVEMENT;
+            action->dx = 1;
+            action->dy = 0;
+            break;
+
+        case SDLK_ESCAPE:
+            action->type = ACTION_ESCAPE;
+            break;
+        }
+        break;
+    }
+    default:
+        // no-op
+        break;
+    }
+}
+
 int main(int argc, char *argv[])
 {
-    #ifdef _WIN32
+#ifdef _WIN32
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
-    #endif
+#endif
 
     rg_app app;
     app_create(&app);
+
+    int screen_width = 80;
+    int screen_height = 50;
+
+    int player_x = screen_width / 2;
+    int player_y = screen_height / 2;
 
     rg_tileset tileset;
     tileset_create(
@@ -37,8 +114,8 @@ int main(int argc, char *argv[])
     terminal_create(
         &terminal,
         &app,
-        80,
-        50,
+        screen_width,
+        screen_height,
         &tileset,
         "roguelike",
         true);
@@ -54,22 +131,26 @@ int main(int argc, char *argv[])
     bool running = true;
     while (running)
     {
-        SDL_Event event = {0};
-        while (SDL_PollEvent(&event))
-        {
-            switch (event.type)
-            {
-            case SDL_QUIT:
-                running = false;
-                break;
-            }
-        }
-
         SDL_RenderClear(app.renderer);
-
-        console_print(&console, 10, 10, '@');
+        console_print(&console, player_x, player_y, '@');
 
         SDL_RenderPresent(app.renderer);
+
+        SDL_Event event = {0};
+        SDL_WaitEvent(&event);
+        rg_action action;
+        event_dispatch(&event, &action);
+
+        if (action.type == ACTION_NONE)
+            continue;
+
+        if (action.type == ACTION_MOVEMENT)
+        {
+            player_x += action.dx;
+            player_y += action.dy;
+        }
+        else if (action.type == ACTION_ESCAPE || action.type == ACTION_QUIT)
+            running = false;
     }
 
     console_destroy(&console);
