@@ -16,8 +16,34 @@
 #include "app.h"
 #include "terminal.h"
 
+#define ARRAY_LEN(arr) (sizeof(arr) / sizeof(arr[0]))
+#define ARRAY_PUSH(arr, ele)                                                   \
+    do                                                                         \
+    {                                                                          \
+        assert(arr);                                                           \
+        if ((arr)->len + 1 > (arr)->capacity)                                  \
+        {                                                                      \
+            (arr)->capacity *= 2;                                              \
+            (arr)->data = realloc((arr)->data, sizeof(ele) * (arr)->capacity); \
+            assert((arr)->data);                                               \
+        }                                                                      \
+        (arr)->data[(arr)->len] = ele;                                         \
+        (arr)->len++;                                                          \
+    } while (0)
 #define DESIRED_FPS 20.0
-#define DESIRED_FRAME_RATE ((1.0 / DESIRED_FPS) *  1000.0)
+#define DESIRED_FRAME_RATE ((1.0 / DESIRED_FPS) * 1000.0)
+#define WHITE \
+    (SDL_Color) { 255, 255, 255, 255 }
+#define BLACK \
+    (SDL_Color) { 0, 0, 0, 255 }
+#define RED \
+    (SDL_Color) { 255, 0, 0, 255 }
+#define BLUE \
+    (SDL_Color) { 0, 255, 0, 255 }
+#define GREEN \
+    (SDL_Color) { 0, 0, 255, 255 }
+#define YELLOW \
+    (SDL_Color) { 255, 255, 0, 255 }
 
 typedef enum rg_action_type
 {
@@ -38,6 +64,44 @@ typedef struct rg_action
         };
     };
 } rg_action;
+
+typedef struct rg_entity
+{
+    int x, y;
+    char ch;
+    SDL_Color color;
+} rg_entity;
+
+typedef struct rg_entity_array
+{
+    size_t len;
+    size_t capacity;
+    rg_entity *data;
+} rg_entity_array;
+
+void ea_push(rg_entity_array *arr, rg_entity ele)
+{
+    assert(arr != NULL);
+    if ((arr)->len + 1 > (arr)->capacity)
+    {
+        (arr)->capacity *= 2;
+        (arr)->data = realloc((arr)->data, sizeof(ele) * (arr)->capacity);
+        assert((arr)->data);
+    }
+    (arr)->data[(arr)->len] = ele;
+    (arr)->len++;
+}
+
+void entity_move(rg_entity *e, int dx, int dy)
+{
+    e->x += dx;
+    e->y += dy;
+}
+
+void entity_draw(rg_entity *e, rg_console *c)
+{
+    console_print(c, e->x, e->y, e->ch, e->color);
+}
 
 void event_dispatch(SDL_Event *event, rg_action *action)
 {
@@ -102,9 +166,6 @@ int main(int argc, char *argv[])
     int screen_width = 80;
     int screen_height = 50;
 
-    int player_x = screen_width / 2;
-    int player_y = screen_height / 2;
-
     rg_tileset tileset;
     tileset_create(
         &tileset,
@@ -131,6 +192,16 @@ int main(int argc, char *argv[])
         terminal.height,
         terminal.tileset);
 
+    rg_entity_array entities = {
+        .capacity = 2,
+        .data = malloc(sizeof(rg_entity) * 2),
+        .len = 0,
+    };
+    ARRAY_PUSH(&entities, ((rg_entity){screen_width / 2, screen_height / 2, '@', WHITE}));
+    ARRAY_PUSH(&entities, ((rg_entity){(screen_width / 2) - 5, screen_height / 2, '@', YELLOW}));
+    rg_entity *player = &entities.data[0];
+    rg_entity *npc = &entities.data[1];
+
     bool running = true;
     while (running)
     {
@@ -148,14 +219,17 @@ int main(int argc, char *argv[])
 
         if (action.type == ACTION_MOVEMENT)
         {
-            player_x += action.dx;
-            player_y += action.dy;
+            entity_move(player, action.dx, action.dy);
         }
         else if (action.type == ACTION_ESCAPE || action.type == ACTION_QUIT)
             running = false;
 
         SDL_RenderClear(app.renderer);
-        console_print(&console, player_x, player_y, '@');
+
+        for (int i = 0; i < entities.len; i++)
+        {
+            entity_draw(&entities.data[i], &console);
+        }
 
         SDL_RenderPresent(app.renderer);
 
@@ -163,10 +237,14 @@ int main(int argc, char *argv[])
         double dt = (frame_end - frame_start) / (double)SDL_GetPerformanceFrequency() * 1000.0;
 
         Uint32 sleep_time = (Uint32)floor(DESIRED_FRAME_RATE - dt);
+        const Uint32 max_sleep_time = 1000;
+        if (sleep_time > max_sleep_time)
+            sleep_time = max_sleep_time;
         // SLEEP
         SDL_Delay(sleep_time);
     }
 
+    free(entities.data);
     console_destroy(&console);
     terminal_destroy(&terminal);
     tileset_destroy(&tileset);

@@ -14,7 +14,11 @@ void console_destroy(rg_console *c)
 {
 }
 
-void console_print(rg_console *c, int x, int y, int ch)
+void console_print(rg_console *c,
+                   int x,
+                   int y,
+                   int ch,
+                   SDL_Color color)
 {
     int idx = -1;
     for (int i = 0; i < TILESET_CHARS_TOTAL; i++)
@@ -32,6 +36,14 @@ void console_print(rg_console *c, int x, int y, int ch)
                     ch);
         return;
     }
+
+    SDL_SetTextureColorMod(c->tileset->texture,
+                           color.r,
+                           color.g,
+                           color.b);
+    SDL_SetTextureAlphaMod(c->tileset->texture,
+                           color.a);
+
     SDL_Rect *src = &c->tileset->srcs[idx];
 
     SDL_Rect dest = {
