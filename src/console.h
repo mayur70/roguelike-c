@@ -21,5 +21,9 @@ void console_print(rg_console *c,
                    int y,
                    int ch,
                    SDL_Color color);
+void console_fill(rg_console *c,
+                  int x,
+                  int y,
+                  SDL_Color color);
 
 #endif

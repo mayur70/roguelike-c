@@ -27,6 +27,7 @@ void terminal_create(
     SDL_SetWindowTitle(
         t->app->window,
         title);
+    SDL_ShowWindow(t->app->window);
     SDL_RenderSetLogicalSize(
         t->app->renderer,
         t->width * t->tileset->tile_size,

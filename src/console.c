@@ -58,3 +58,21 @@ void console_print(rg_console *c,
         src,
         &dest);
 }
+
+void console_fill(rg_console *c,
+                  int x,
+                  int y,
+                  SDL_Color color)
+{
+    SDL_SetRenderDrawColor(c->renderer,
+                           color.r,
+                           color.g,
+                           color.b,
+                           color.a);
+    SDL_Rect dest = {
+        .x = x * c->tileset->tile_size,
+        .y = y * c->tileset->tile_size,
+        .w = c->tileset->tile_size,
+        .h = c->tileset->tile_size};
+    SDL_RenderFillRect(c->renderer, &dest);
+}

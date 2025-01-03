@@ -278,6 +278,7 @@ void tileset_create(rg_tileset *ts,
         SDL_Surface *s = IMG_Load(file);
         if (s == NULL)
             panic("failed to load tileset texture");
+        SDL_SetColorKey(s, SDL_TRUE, SDL_MapRGB(s->format, 0, 0, 0));
         ts->texture = SDL_CreateTextureFromSurface(
             renderer,
             s);

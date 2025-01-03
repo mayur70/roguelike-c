@@ -17,13 +17,14 @@ void app_create(rg_app *app)
     if ((IMG_Init(img_flags) & img_flags) == 0)
         panic("failed to initialize SDL_image");
 
+    app->running = true;
     app->window = SDL_CreateWindow(
         "roguelike",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         800,
         600,
-        0);
+        SDL_WINDOW_HIDDEN);
     if (app->window == NULL)
         panic("failed to create window");
 
