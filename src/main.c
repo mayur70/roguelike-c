@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <time.h>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -19,80 +20,10 @@
 #include "array.h"
 #include "color.h"
 #include "entity.h"
+#include "game_map.h"
 
 #define DESIRED_FPS 20.0
 #define DESIRED_FRAME_RATE ((1.0 / DESIRED_FPS) * 1000.0)
-
-typedef struct rg_tile
-{
-    bool blocked;
-    bool block_sight;
-} rg_tile;
-
-typedef struct rg_tile_array
-{
-    size_t len;
-    size_t capacity;
-    rg_tile *data;
-} rg_tile_array;
-
-typedef struct rg_map
-{
-    int width;
-    int height;
-    rg_tile_array tiles;
-} rg_map;
-
-void map_set_tile(rg_map *m, int x, int y, rg_tile tile);
-rg_tile *map_get_tile(rg_map *m, int x, int y);
-
-void map_create(rg_map *m, int w, int h)
-{
-    memset(m, 0, sizeof(m));
-    m->width = w;
-    m->height = h;
-    m->tiles.capacity = m->width * m->height;
-    m->tiles.data = malloc(sizeof(m->tiles.data) * m->tiles.capacity);
-    assert(m->tiles.data != NULL);
-
-    for (int y = 0; y < m->height; y++)
-    {
-        for (int x = 0; x < m->width; x++)
-        {
-            map_set_tile(m, x, y, (rg_tile){false, false});
-        }
-    }
-    map_get_tile(m, 30, 22)->blocked = true;
-    map_get_tile(m, 30, 22)->block_sight = true;
-    map_get_tile(m, 31, 22)->blocked = true;
-    map_get_tile(m, 31, 22)->block_sight = true;
-    map_get_tile(m, 32, 22)->blocked = true;
-    map_get_tile(m, 32, 22)->block_sight = true;
-}
-
-void map_destroy(rg_map *m)
-{
-    free(m->tiles.data);
-}
-
-rg_tile *map_get_tile(rg_map *m, int x, int y)
-{
-    size_t idx = x + m->width * y;
-    assert(idx < m->tiles.capacity);
-    return &m->tiles.data[idx];
-}
-
-void map_set_tile(rg_map *m, int x, int y, rg_tile tile)
-{
-    size_t idx = x + m->width * y;
-    assert(idx < m->tiles.capacity);
-    m->tiles.data[idx] = tile;
-}
-
-bool map_is_blocked(rg_map *m, int x, int y)
-{
-    return x < 0 || x >= m->width || y < 0 || y >= m->height || map_get_tile(m, x, y)->blocked;
-}
 
 void update(rg_app *app,
             SDL_Event *event,
@@ -153,6 +84,8 @@ int main(int argc, char *argv[])
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
 #endif
 
+    srand((unsigned int)time(NULL));
+
     rg_app app;
     app_create(&app);
 
@@ -160,6 +93,9 @@ int main(int argc, char *argv[])
     int screen_height = 50;
     int map_width = 80;
     int map_height = 45;
+    int room_max_size = 10;
+    int room_min_size = 6;
+    int max_rooms = 30;
 
     rg_tileset tileset;
     tileset_create(
@@ -187,9 +123,6 @@ int main(int argc, char *argv[])
         terminal.height,
         terminal.tileset);
 
-    rg_map game_map;
-    map_create(&game_map, map_width, map_height);
-
     rg_entity_array entities = {
         .capacity = 2,
         .data = malloc(sizeof(rg_entity) * 2),
@@ -199,6 +132,15 @@ int main(int argc, char *argv[])
     ARRAY_PUSH(&entities, ((rg_entity){(screen_width / 2) - 5, screen_height / 2, '@', YELLOW}));
     rg_entity *player = &entities.data[0];
     rg_entity *npc = &entities.data[1];
+
+    rg_map game_map;
+    map_create(&game_map,
+               map_width,
+               map_height,
+               room_min_size,
+               room_max_size,
+               max_rooms,
+               player);
 
     // first draw before waitevent
     draw(&app, &console, &game_map, &entities);
