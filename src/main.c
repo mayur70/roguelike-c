@@ -36,6 +36,7 @@ typedef struct rg_game_state
     int room_max_size;
     int room_min_size;
     int max_rooms;
+    int max_monsters_per_room;
     bool fov_light_walls;
     int fov_radius;
     rg_tileset tileset;
@@ -47,7 +48,6 @@ typedef struct rg_game_state
     rg_fov_map fov_map;
     bool recompute_fov;
 } rg_game_state;
-
 
 void game_recompute_fov(rg_game_state *state)
 {
@@ -139,7 +139,7 @@ void draw(rg_app *app,
     }
     for (int i = 0; i < entities->len; i++)
     {
-        rg_entity *e = &entities->data[i];
+        const rg_entity *e = &entities->data[i];
         if (fov_map_is_in_fov(fov_map, e->x, e->y))
             entity_draw(e, console);
     }
@@ -167,6 +167,7 @@ int main(int argc, char *argv[])
     state.room_max_size = 10;
     state.room_min_size = 6;
     state.max_rooms = 30;
+    state.max_monsters_per_room = 3;
     state.fov_light_walls = true;
     state.fov_radius = 10;
 
@@ -193,13 +194,11 @@ int main(int argc, char *argv[])
         state.terminal.height,
         state.terminal.tileset);
 
-    state.entities.capacity = 2;
-    state.entities.data = malloc(sizeof(rg_entity) * 2);
+    state.entities.capacity = state.max_monsters_per_room;
+    state.entities.data = malloc(sizeof(*state.entities.data) * state.entities.capacity);
     state.entities.len = 0;
-    ARRAY_PUSH(&state.entities, ((rg_entity){state.screen_width / 2, state.screen_height / 2, '@', WHITE}));
-    ARRAY_PUSH(&state.entities, ((rg_entity){(state.screen_width / 2) - 5, state.screen_height / 2, '@', YELLOW}));
+    ARRAY_PUSH(&state.entities, ((rg_entity){0, 0, '@', WHITE}));
     state.player = &state.entities.data[0];
-    rg_entity *npc = &state.entities.data[1];
 
     map_create(&state.game_map,
                state.map_width,
@@ -207,6 +206,8 @@ int main(int argc, char *argv[])
                state.room_min_size,
                state.room_max_size,
                state.max_rooms,
+               state.max_monsters_per_room,
+               &state.entities,
                state.player);
 
     fov_map_create(&state.fov_map, state.map_width, state.map_height);
@@ -226,6 +227,7 @@ int main(int argc, char *argv[])
     // first draw before waitevent
     game_recompute_fov(&state);
     draw(&app, &state);
+    state.player = &state.entities.data[0];//FIXME: draw method changinge state.player data
 
     while (app.running)
     {
@@ -236,6 +238,7 @@ int main(int argc, char *argv[])
 
         update(&app, &event, &state);
         draw(&app, &state);
+        state.player = &state.entities.data[0];
 
         Uint64 frame_end = SDL_GetPerformanceCounter();
         double dt = (frame_end - frame_start) / (double)SDL_GetPerformanceFrequency() * 1000.0;

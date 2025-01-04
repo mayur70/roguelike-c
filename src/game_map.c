@@ -6,6 +6,8 @@
 #include <time.h>
 
 #include "types.h"
+#include "array.h"
+#include "color.h"
 
 typedef struct room_array
 {
@@ -20,6 +22,8 @@ void map_create(rg_map *m,
                 int room_min_size,
                 int room_max_size,
                 int max_rooms,
+                int max_monsters_per_room,
+                rg_entity_array* entities,
                 rg_entity *player)
 {
     memset(m, 0, sizeof(rg_map));
@@ -89,6 +93,7 @@ void map_create(rg_map *m,
                 map_create_v_tunnel(m, prev_y, new_y, prev_x);
                 map_create_h_tunnel(m, prev_x, new_x, new_y);
             }
+            map_place_entities(m, &new_room, entities, max_monsters_per_room);
         }
 
         memcpy(&rooms.data[rooms.len], &new_room, sizeof(SDL_Rect));
@@ -152,6 +157,53 @@ void map_create_v_tunnel(rg_map *m, int y1, int y2, int x)
     {
         map_get_tile(m, x, y)->blocked = false;
         map_get_tile(m, x, y)->block_sight = false;
+    }
+}
+
+void map_place_entities(rg_map *m,
+                        SDL_Rect *room,
+                        rg_entity_array *entities,
+                        int max_monsters_per_room)
+{
+    int num_monsters = RAND_INT(0, max_monsters_per_room);
+    for (int i = 0; i < num_monsters; i++)
+    {
+        //FIXME: bug in random max limit???
+        int x = RAND_INT(room->x + 1, room->x + room->w - 3);
+        int y = RAND_INT(room->y + 1, room->y + room->h - 3);
+
+        ASSERT_M(x != room->x && x != room->x + room->w);
+        ASSERT_M(y != room->y && y != room->y + room->h);
+
+        bool valid = true;
+        for (int m = 0; m < entities->len; m++)
+        {
+            rg_entity *e = &entities->data[m];
+            if (e->x == x && e->y == y)
+            {
+                valid = false;
+                break;
+            }
+        }
+
+        if (!valid)
+            continue;
+        if (RAND_INT(0, 100) < 80)
+        {
+            ARRAY_PUSH(entities, ((rg_entity){
+                                     .x = x,
+                                     .y = y,
+                                     .ch = 'o',
+                                     .color = DESATURATED_GREEN}));
+        }
+        else
+        {
+            ARRAY_PUSH(entities, ((rg_entity){
+                                     .x = x,
+                                     .y = y,
+                                     .ch = 'T',
+                                     .color = DARKER_GREEN}));
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "tileset.h": "c"
+        "tileset.h": "c",
+        "types.h": "c"
     }
 }
