@@ -12,6 +12,7 @@ typedef struct rg_tile
 {
     bool blocked;
     bool block_sight;
+    bool explored;
 } rg_tile;
 
 typedef struct rg_tile_array
