@@ -4,6 +4,8 @@
 #include <time.h>
 #include <assert.h>
 
+typedef size_t rg_entity_id;
+
 #define MIN(x, y) (x < y ? x : y)
 #define MAX(x, y) (x > y ? x : y)
 #define RAND_INT(min, max) (min + rand() / (RAND_MAX / (max - min + 1) + 1))

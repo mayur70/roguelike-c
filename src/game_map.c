@@ -24,7 +24,7 @@ void map_create(rg_map *m,
                 int max_rooms,
                 int max_monsters_per_room,
                 rg_entity_array* entities,
-                rg_entity *player)
+                rg_entity_id player)
 {
     memset(m, 0, sizeof(rg_map));
     m->width = width;
@@ -76,8 +76,8 @@ void map_create(rg_map *m,
         room_get_center(&new_room, &new_x, &new_y);
         if (rooms.len == 0)
         {
-            player->x = new_x;
-            player->y = new_y;
+            entities->data[player].x = new_x;
+            entities->data[player].y = new_y;
         }
         else
         {

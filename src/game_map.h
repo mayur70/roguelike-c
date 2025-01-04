@@ -7,6 +7,7 @@
 #include <SDL.h>
 
 #include "entity.h"
+#include "types.h"
 
 typedef struct rg_tile
 {
@@ -37,7 +38,7 @@ void map_create(rg_map *m,
                 int max_rooms,
                 int max_monsters_per_room,
                 rg_entity_array* entities,
-                rg_entity *player);
+                rg_entity_id player);
 void map_destroy(rg_map *m);
 
 void map_set_tile(rg_map *m, int x, int y, rg_tile tile);

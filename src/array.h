@@ -1,6 +1,8 @@
 #ifndef ARRAY_H
 #define ARRAY_H
 
+#include "types.h"
+
 #define ARRAY_PUSH(arr, ele)                                                   \
     do                                                                         \
     {                                                                          \
@@ -9,7 +11,7 @@
         {                                                                      \
             (arr)->capacity *= 2;                                              \
             (arr)->data = realloc((arr)->data, sizeof(ele) * (arr)->capacity); \
-            assert((arr)->data);                                               \
+            ASSERT_M((arr)->data != NULL);                                               \
         }                                                                      \
         (arr)->data[(arr)->len] = ele;                                         \
         (arr)->len++;                                                          \
