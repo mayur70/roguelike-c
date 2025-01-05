@@ -22,7 +22,7 @@ void app_create(rg_app *app)
                                    SDL_WINDOWPOS_CENTERED,
                                    800,
                                    600,
-                                   SDL_WINDOW_HIDDEN);
+                                   SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);
     if (app->window == NULL) panic("failed to create window");
 
     app->renderer = SDL_CreateRenderer(app->window, -1, 0);

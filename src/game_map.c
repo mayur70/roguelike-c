@@ -184,16 +184,23 @@ void map_place_entities(rg_map *m,
         if (!valid) continue;
         if (RAND_INT(0, 100) < 80)
         {
-            ARRAY_PUSH(
-              entities,
-              ((rg_entity){
-                .x = x, .y = y, .ch = 'o', .color = DESATURATED_GREEN }));
+            ARRAY_PUSH(entities,
+                       ((rg_entity){ .x = x,
+                                     .y = y,
+                                     .ch = 'o',
+                                     .color = DESATURATED_GREEN,
+                                     .name = "Orc",
+                                     .blocks = true }));
         }
         else
         {
             ARRAY_PUSH(entities,
-                       ((rg_entity){
-                         .x = x, .y = y, .ch = 'T', .color = DARKER_GREEN }));
+                       ((rg_entity){ .x = x,
+                                     .y = y,
+                                     .ch = 'T',
+                                     .color = DARKER_GREEN,
+                                     .name = "Troll",
+                                     .blocks = true }));
         }
     }
 }

@@ -15,7 +15,7 @@ AlwaysBreakAfterReturnType: None
 BinPackArguments: 'false'
 BinPackParameters: 'false'
 AlignEscapedNewlines: Left
-# IndentCaseBlocks: 'false' 
+# IndentCaseBlocks: 'false'
 IndentCaseLabels: 'false'
 BreakBeforeBraces: Custom
 BraceWrapping:

@@ -7,7 +7,7 @@ add_subdirectory(vendor/SDL_image EXCLUDE_FROM_ALL)
 
 add_executable(
     ${PROJECT_NAME}
-    WIN32
+    # WIN32
     src/main.c
     src/panic.c
     src/tileset.c
@@ -20,8 +20,8 @@ add_executable(
     src/fov.c
 )
 
-target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
-target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
+# target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
+# target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
 
 # SDL2::SDL2main may or may not be available. It is e.g. required by Windows GUI applications
 if(TARGET SDL2::SDL2main)

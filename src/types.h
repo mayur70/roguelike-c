@@ -4,7 +4,6 @@
 #include <assert.h>
 #include <time.h>
 
-typedef size_t rg_entity_id;
 
 #define MIN(x, y) (x < y ? x : y)
 #define MAX(x, y) (x > y ? x : y)

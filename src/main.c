@@ -69,14 +69,25 @@ void update(rg_app* app, SDL_Event* event, rg_game_state* state)
 
     if (action.type == ACTION_MOVEMENT)
     {
-
-        if (!map_is_blocked(game_map,
-                            state->entities.data[state->player].x + action.dx,
-                            state->entities.data[state->player].y + action.dy))
+        int destination_x = state->entities.data[state->player].x + action.dx;
+        int destination_y = state->entities.data[state->player].y + action.dy;
+        if (!map_is_blocked(game_map, destination_x, destination_y))
         {
-            entity_move(
-              &state->entities.data[state->player], action.dx, action.dy);
-            state->recompute_fov = true;
+            rg_entity* target = NULL;
+            entity_get_at_loc(
+              &state->entities, destination_x, destination_y, &target);
+
+            if (target == NULL)
+            {
+                entity_move(
+                  &state->entities.data[state->player], action.dx, action.dy);
+                state->recompute_fov = true;
+            }
+            else
+            {
+                SDL_Log("You kick the '%s' in shins, much to its annoyance!",
+                        target->name);
+            }
         }
     }
 
@@ -173,7 +184,13 @@ int main(int argc, char* argv[])
       malloc(sizeof(*state.entities.data) * state.entities.capacity);
     ASSERT_M(state.entities.data != NULL);
     state.entities.len = 0;
-    ARRAY_PUSH(&state.entities, ((rg_entity){ 0, 0, '@', WHITE }));
+    ARRAY_PUSH(&state.entities,
+               ((rg_entity){ .x = 0,
+                             .y = 0,
+                             .ch = '@',
+                             .color = WHITE,
+                             .name = "player",
+                             .blocks = true }));
     state.player = state.entities.len - 1;
 
     map_create(&state.game_map,
