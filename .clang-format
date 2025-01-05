@@ -1,0 +1,37 @@
+---
+BasedOnStyle: Mozilla
+Language: Cpp
+TabWidth: '4'
+ColumnLimit: '80'
+IndentWidth: '4'
+SortIncludes: 'true'
+DerivePointerAlignment: 'true'
+PointerAlignment: Left
+AllowShortBlocksOnASingleLine: 'false'
+AllowShortIfStatementsOnASingleLine: Always
+AllowShortLoopsOnASingleLine: 'true'
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakAfterReturnType: None
+BinPackArguments: 'false'
+BinPackParameters: 'false'
+AlignEscapedNewlines: Left
+# IndentCaseBlocks: 'false' 
+IndentCaseLabels: 'false'
+BreakBeforeBraces: Custom
+BraceWrapping:
+    AfterClass: 'true'
+    AfterCaseLabel: 'true'
+    AfterControlStatement: Always
+    AfterEnum: 'true'
+    AfterFunction: 'true'
+    AfterNamespace: 'true'
+    AfterStruct: 'true'
+    AfterUnion: 'true'
+    AfterExternBlock: 'true'
+    BeforeElse: 'true'
+    BeforeWhile: 'false'
+    IndentBraces: 'false'
+    SplitEmptyFunction: 'false'
+    SplitEmptyRecord: 'false'
+    SplitEmptyNamespace: 'false'
+...

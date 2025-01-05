@@ -1,7 +1,11 @@
 #include "console.h"
 #include <string.h>
 
-void console_create(rg_console *c, SDL_Renderer *r, int w, int h, rg_tileset *ts)
+void console_create(rg_console *c,
+                    SDL_Renderer *r,
+                    int w,
+                    int h,
+                    rg_tileset *ts)
 {
     memset(c, 0, sizeof(c));
     c->renderer = r;
@@ -10,15 +14,9 @@ void console_create(rg_console *c, SDL_Renderer *r, int w, int h, rg_tileset *ts
     c->tileset = ts;
 }
 
-void console_destroy(rg_console *c)
-{
-}
+void console_destroy(rg_console *c) {}
 
-void console_print(rg_console *c,
-                   int x,
-                   int y,
-                   int ch,
-                   SDL_Color color)
+void console_print(rg_console *c, int x, int y, int ch, SDL_Color color)
 {
     int idx = -1;
     for (int i = 0; i < TILESET_CHARS_TOTAL; i++)
@@ -37,42 +35,25 @@ void console_print(rg_console *c,
         return;
     }
 
-    SDL_SetTextureColorMod(c->tileset->texture,
-                           color.r,
-                           color.g,
-                           color.b);
-    SDL_SetTextureAlphaMod(c->tileset->texture,
-                           color.a);
+    SDL_SetTextureColorMod(c->tileset->texture, color.r, color.g, color.b);
+    SDL_SetTextureAlphaMod(c->tileset->texture, color.a);
 
     SDL_Rect *src = &c->tileset->srcs[idx];
 
-    SDL_Rect dest = {
-        x * c->tileset->tile_size,
-        y * c->tileset->tile_size,
-        c->tileset->tile_size,
-        c->tileset->tile_size};
+    SDL_Rect dest = { x * c->tileset->tile_size,
+                      y * c->tileset->tile_size,
+                      c->tileset->tile_size,
+                      c->tileset->tile_size };
 
-    SDL_RenderCopy(
-        c->renderer,
-        c->tileset->texture,
-        src,
-        &dest);
+    SDL_RenderCopy(c->renderer, c->tileset->texture, src, &dest);
 }
 
-void console_fill(rg_console *c,
-                  int x,
-                  int y,
-                  SDL_Color color)
+void console_fill(rg_console *c, int x, int y, SDL_Color color)
 {
-    SDL_SetRenderDrawColor(c->renderer,
-                           color.r,
-                           color.g,
-                           color.b,
-                           color.a);
-    SDL_Rect dest = {
-        .x = x * c->tileset->tile_size,
-        .y = y * c->tileset->tile_size,
-        .w = c->tileset->tile_size,
-        .h = c->tileset->tile_size};
+    SDL_SetRenderDrawColor(c->renderer, color.r, color.g, color.b, color.a);
+    SDL_Rect dest = { .x = x * c->tileset->tile_size,
+                      .y = y * c->tileset->tile_size,
+                      .w = c->tileset->tile_size,
+                      .h = c->tileset->tile_size };
     SDL_RenderFillRect(c->renderer, &dest);
 }

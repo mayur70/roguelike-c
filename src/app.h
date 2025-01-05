@@ -10,7 +10,7 @@ typedef struct rg_app
     SDL_Window* window;
     SDL_Renderer* renderer;
     bool running;
-}rg_app;
+} rg_app;
 
 void app_create(rg_app* app);
 void app_destroy(rg_app* app);

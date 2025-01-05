@@ -3,7 +3,6 @@
 
 #include <SDL.h>
 
-
 typedef enum rg_action_type
 {
     ACTION_NONE,

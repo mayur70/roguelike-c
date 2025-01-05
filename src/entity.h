@@ -20,7 +20,6 @@ typedef struct rg_entity_array
     rg_entity *data;
 } rg_entity_array;
 
-
 void entity_move(rg_entity *e, int dx, int dy);
 void entity_draw(const rg_entity *e, rg_console *c);
 

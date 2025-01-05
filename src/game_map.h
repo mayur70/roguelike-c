@@ -37,7 +37,7 @@ void map_create(rg_map *m,
                 int room_max_size,
                 int max_rooms,
                 int max_monsters_per_room,
-                rg_entity_array* entities,
+                rg_entity_array *entities,
                 rg_entity_id player);
 void map_destroy(rg_map *m);
 

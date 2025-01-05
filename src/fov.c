@@ -14,15 +14,13 @@ void line_init(int x0, int y0, int x1, int y1, rg_line_data *data)
     data->delta_x = x1 - x0;
     data->delta_y = y1 - y0;
 
-    if (data->delta_x > 0)
-        data->step_x = 1;
+    if (data->delta_x > 0) data->step_x = 1;
     else if (data->delta_x < 0)
         data->step_x = -1;
     else
         data->step_x = 0;
 
-    if (data->delta_y > 0)
-        data->step_y = 1;
+    if (data->delta_y > 0) data->step_y = 1;
     else if (data->delta_y < 0)
         data->step_y = -1;
     else
@@ -40,8 +38,7 @@ bool line_step(int *x, int *y, rg_line_data *data)
 {
     if (data->step_x * data->delta_x > data->step_y * data->delta_y)
     {
-        if (data->orig_x == data->dest_x)
-            return true;
+        if (data->orig_x == data->dest_x) return true;
         data->orig_x += data->step_x;
         data->e -= data->step_y * data->delta_y;
         if (data->e < 0)
@@ -52,8 +49,7 @@ bool line_step(int *x, int *y, rg_line_data *data)
     }
     else
     {
-        if (data->orig_y == data->dest_y)
-            return true;
+        if (data->orig_y == data->dest_y) return true;
         data->orig_y += data->step_y;
         data->e -= data->step_x * data->delta_x;
         if (data->e < 0)
@@ -77,22 +73,19 @@ void fov_map_create(rg_fov_map *m, int w, int h)
 
 void fov_map_destroy(rg_fov_map *m)
 {
-    if (m == NULL)
-        return;
+    if (m == NULL) return;
     free(m->cells);
 }
 
 bool fov_map_in_bounds(rg_fov_map *m, int x, int y)
 {
-    if (m == NULL)
-        return false;
+    if (m == NULL) return false;
     return x >= 0 && x < m->width && y >= 0 && y < m->height;
 }
 
 bool fov_map_is_in_fov(rg_fov_map *m, int x, int y)
 {
-    if (!fov_map_in_bounds(m, x, y))
-        return false;
+    if (!fov_map_in_bounds(m, x, y)) return false;
     return m->cells[x + y * m->width].fov;
 }
 
@@ -102,8 +95,7 @@ void fov_map_set_props(rg_fov_map *m,
                        bool transparent,
                        bool walkable)
 {
-    if (!fov_map_in_bounds(m, x, y))
-        return;
+    if (!fov_map_in_bounds(m, x, y)) return;
     size_t idx = x + y * m->width;
     m->cells[idx].transparent = transparent;
     m->cells[idx].walkable = walkable;
@@ -130,7 +122,8 @@ void fov_map_cast_ray(rg_fov_map *m,
         if (radius_squared > 0)
         {
             const int current_radius =
-                (current_x - orig_x) * (current_x - orig_x) + (current_y - orig_y) * (current_y - orig_y);
+              (current_x - orig_x) * (current_x - orig_x) +
+              (current_y - orig_y) * (current_y - orig_y);
             if (current_radius > radius_squared)
             {
                 return; // Outside of radius.
@@ -169,12 +162,14 @@ void fov_map_postprocess_quad(rg_fov_map *m,
             const int x2 = cx + dx;
             const int y2 = cy + dy;
             const int offset = cx + cy * m->width;
-            if (offset < (m->width * m->height) && m->cells[offset].fov == 1 && m->cells[offset].transparent)
+            if (offset < (m->width * m->height) && m->cells[offset].fov == 1 &&
+                m->cells[offset].transparent)
             {
                 if (x2 >= x0 && x2 <= x1)
                 {
                     const int offset2 = x2 + cy * m->width;
-                    if (offset2 < (m->width * m->height) && !m->cells[offset2].transparent)
+                    if (offset2 < (m->width * m->height) &&
+                        !m->cells[offset2].transparent)
                     {
                         m->cells[offset2].fov = true;
                     }
@@ -182,7 +177,8 @@ void fov_map_postprocess_quad(rg_fov_map *m,
                 if (y2 >= y0 && y2 <= y1)
                 {
                     const int offset2 = cx + y2 * m->width;
-                    if (offset2 < (m->width * m->height) && !m->cells[offset2].transparent)
+                    if (offset2 < (m->width * m->height) &&
+                        !m->cells[offset2].transparent)
                     {
                         m->cells[offset2].fov = true;
                     }
@@ -190,7 +186,8 @@ void fov_map_postprocess_quad(rg_fov_map *m,
                 if (x2 >= x0 && x2 <= x1 && y2 >= y0 && y2 <= y1)
                 {
                     const int offset2 = x2 + y2 * m->width;
-                    if (offset2 < (m->width * m->height) && !m->cells[offset2].transparent)
+                    if (offset2 < (m->width * m->height) &&
+                        !m->cells[offset2].transparent)
                     {
                         m->cells[offset2].fov = true;
                     }
@@ -200,10 +197,7 @@ void fov_map_postprocess_quad(rg_fov_map *m,
     }
 }
 
-void fov_map_postprocess(rg_fov_map *m,
-                         int pov_x,
-                         int pov_y,
-                         int radius)
+void fov_map_postprocess(rg_fov_map *m, int pov_x, int pov_y, int radius)
 {
     int x_min = 0;
     int y_min = 0;
@@ -228,12 +222,9 @@ void fov_map_compute(rg_fov_map *m,
                      int max_radius,
                      bool light_walls)
 {
-    if (m == NULL)
-        return;
-    if (!fov_map_in_bounds(m, pov_x, pov_y))
-        return;
-    for (int i = 0; i < m->width * m->height; i++)
-        m->cells[i].fov = false;
+    if (m == NULL) return;
+    if (!fov_map_in_bounds(m, pov_x, pov_y)) return;
+    for (int i = 0; i < m->width * m->height; i++) m->cells[i].fov = false;
 
     int x_min = 0;
     int y_min = 0;
@@ -254,19 +245,23 @@ void fov_map_compute(rg_fov_map *m,
     const int radius_squared = max_radius * max_radius;
     for (int x = x_min; x < x_max; ++x)
     {
-        fov_map_cast_ray(m, pov_x, pov_y, x, y_min, radius_squared, light_walls);
+        fov_map_cast_ray(
+          m, pov_x, pov_y, x, y_min, radius_squared, light_walls);
     }
     for (int y = y_min + 1; y < y_max; ++y)
     {
-        fov_map_cast_ray(m, pov_x, pov_y, x_max - 1, y, radius_squared, light_walls);
+        fov_map_cast_ray(
+          m, pov_x, pov_y, x_max - 1, y, radius_squared, light_walls);
     }
     for (int x = x_max - 2; x >= x_min; --x)
     {
-        fov_map_cast_ray(m, pov_x, pov_y, x, y_max - 1, radius_squared, light_walls);
+        fov_map_cast_ray(
+          m, pov_x, pov_y, x, y_max - 1, radius_squared, light_walls);
     }
     for (int y = y_max - 2; y > y_min; --y)
     {
-        fov_map_cast_ray(m, pov_x, pov_y, x_min, y, radius_squared, light_walls);
+        fov_map_cast_ray(
+          m, pov_x, pov_y, x_min, y, radius_squared, light_walls);
     }
     if (light_walls)
     {

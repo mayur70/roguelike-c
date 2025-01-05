@@ -1,6 +1,5 @@
 #include "events.h"
 
-
 void event_dispatch(SDL_Event *event, rg_action *action)
 {
     // Default value

@@ -16,10 +16,10 @@ typedef struct rg_tileset
 } rg_tileset;
 
 void tileset_create(rg_tileset *ts,
-                  SDL_Renderer *renderer,
-                  const char* file,
-                  int tiles_wide,
-                  int tiles_high);
-void tileset_destroy(rg_tileset* ts);
+                    SDL_Renderer *renderer,
+                    const char *file,
+                    int tiles_wide,
+                    int tiles_high);
+void tileset_destroy(rg_tileset *ts);
 
 #endif // TILESET_H

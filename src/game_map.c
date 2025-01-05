@@ -1,13 +1,13 @@
 #include "game_map.h"
 
-#include <string.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
-#include "types.h"
 #include "array.h"
 #include "color.h"
+#include "types.h"
 
 typedef struct room_array
 {
@@ -23,7 +23,7 @@ void map_create(rg_map *m,
                 int room_max_size,
                 int max_rooms,
                 int max_monsters_per_room,
-                rg_entity_array* entities,
+                rg_entity_array *entities,
                 rg_entity_id player)
 {
     memset(m, 0, sizeof(rg_map));
@@ -37,14 +37,13 @@ void map_create(rg_map *m,
     {
         for (int x = 0; x < m->width; x++)
         {
-            map_set_tile(m, x, y, (rg_tile){true, true});
+            map_set_tile(m, x, y, (rg_tile){ true, true });
         }
     }
 
-    room_array rooms = {
-        .capacity = max_rooms,
-        .len = 0,
-        .data = malloc(sizeof(SDL_Rect) * max_rooms)};
+    room_array rooms = { .capacity = max_rooms,
+                         .len = 0,
+                         .data = malloc(sizeof(SDL_Rect) * max_rooms) };
     int num_rooms = 0;
 
     for (int r = 0; r < max_rooms; r++)
@@ -54,11 +53,7 @@ void map_create(rg_map *m,
         int x = RAND_INT(0, m->width - w - 1);
         int y = RAND_INT(0, m->height - h - 1);
 
-        SDL_Rect new_room = {
-            .x = x,
-            .y = y,
-            .w = w,
-            .h = h};
+        SDL_Rect new_room = { .x = x, .y = y, .w = w, .h = h };
         bool intersects = false;
         for (int i = 0; i < rooms.len; i++)
         {
@@ -68,8 +63,7 @@ void map_create(rg_map *m,
                 break;
             }
         }
-        if (intersects)
-            continue;
+        if (intersects) continue;
 
         map_create_room(m, new_room);
         int new_x, new_y;
@@ -123,7 +117,8 @@ void map_set_tile(rg_map *m, int x, int y, rg_tile tile)
 
 bool map_is_blocked(rg_map *m, int x, int y)
 {
-    return x < 0 || x >= m->width || y < 0 || y >= m->height || map_get_tile(m, x, y)->blocked;
+    return x < 0 || x >= m->width || y < 0 || y >= m->height ||
+           map_get_tile(m, x, y)->blocked;
 }
 
 void map_create_room(rg_map *m, SDL_Rect room)
@@ -168,7 +163,7 @@ void map_place_entities(rg_map *m,
     int num_monsters = RAND_INT(0, max_monsters_per_room);
     for (int i = 0; i < num_monsters; i++)
     {
-        //FIXME: bug in random max limit???
+        // FIXME: bug in random max limit???
         int x = RAND_INT(room->x + 1, room->x + room->w - 3);
         int y = RAND_INT(room->y + 1, room->y + room->h - 3);
 
@@ -186,23 +181,19 @@ void map_place_entities(rg_map *m,
             }
         }
 
-        if (!valid)
-            continue;
+        if (!valid) continue;
         if (RAND_INT(0, 100) < 80)
         {
-            ARRAY_PUSH(entities, ((rg_entity){
-                                     .x = x,
-                                     .y = y,
-                                     .ch = 'o',
-                                     .color = DESATURATED_GREEN}));
+            ARRAY_PUSH(
+              entities,
+              ((rg_entity){
+                .x = x, .y = y, .ch = 'o', .color = DESATURATED_GREEN }));
         }
         else
         {
-            ARRAY_PUSH(entities, ((rg_entity){
-                                     .x = x,
-                                     .y = y,
-                                     .ch = 'T',
-                                     .color = DARKER_GREEN}));
+            ARRAY_PUSH(entities,
+                       ((rg_entity){
+                         .x = x, .y = y, .ch = 'T', .color = DARKER_GREEN }));
         }
     }
 }

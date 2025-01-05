@@ -1,8 +1,8 @@
 #ifndef TYPES_H
 #define TYPES_h
 
-#include <time.h>
 #include <assert.h>
+#include <time.h>
 
 typedef size_t rg_entity_id;
 

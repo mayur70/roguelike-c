@@ -53,10 +53,7 @@ void fov_map_postprocess_quad(rg_fov_map *m,
                               int dx,
                               int dy);
 
-void fov_map_postprocess(rg_fov_map *m,
-                         int pov_x,
-                         int pov_y,
-                         int radius);
+void fov_map_postprocess(rg_fov_map *m, int pov_x, int pov_y, int radius);
 void fov_map_compute(rg_fov_map *m,
                      int pov_x,
                      int pov_y,

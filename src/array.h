@@ -11,7 +11,7 @@
         {                                                                      \
             (arr)->capacity *= 2;                                              \
             (arr)->data = realloc((arr)->data, sizeof(ele) * (arr)->capacity); \
-            ASSERT_M((arr)->data != NULL);                                               \
+            ASSERT_M((arr)->data != NULL);                                     \
         }                                                                      \
         (arr)->data[(arr)->len] = ele;                                         \
         (arr)->len++;                                                          \
