@@ -15,28 +15,48 @@ void event_dispatch(SDL_Event *event, rg_action *action)
         switch (event->key.keysym.sym)
         {
         case SDLK_UP:
-        case SDLK_w:
+        case SDLK_k:
             action->type = ACTION_MOVEMENT;
             action->dx = 0;
             action->dy = -1;
             break;
         case SDLK_DOWN:
-        case SDLK_s:
+        case SDLK_j:
             action->type = ACTION_MOVEMENT;
             action->dx = 0;
             action->dy = 1;
             break;
         case SDLK_LEFT:
-        case SDLK_a:
+        case SDLK_h:
             action->type = ACTION_MOVEMENT;
             action->dx = -1;
             action->dy = 0;
             break;
         case SDLK_RIGHT:
-        case SDLK_d:
+        case SDLK_l:
             action->type = ACTION_MOVEMENT;
             action->dx = 1;
             action->dy = 0;
+            break;
+        case SDLK_y:
+            action->type = ACTION_MOVEMENT;
+            action->dx = -1;
+            action->dy = -1;
+            break;
+        case SDLK_u:
+            action->type = ACTION_MOVEMENT;
+            action->dx = 1;
+            action->dy = -1;
+            break;
+        case SDLK_b:
+            action->type = ACTION_MOVEMENT;
+            action->dx = -1;
+            action->dy = 1;
+            break;
+        case SDLK_n:
+            action->type = ACTION_MOVEMENT;
+            action->dx = 1;
+            action->dy = 1;
             break;
 
         case SDLK_ESCAPE:

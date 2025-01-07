@@ -184,23 +184,29 @@ void map_place_entities(rg_map *m,
         if (!valid) continue;
         if (RAND_INT(0, 100) < 80)
         {
+            rg_fighter fighter = { .hp = 10, .defence = 0, .power = 3 };
             ARRAY_PUSH(entities,
                        ((rg_entity){ .x = x,
                                      .y = y,
                                      .ch = 'o',
                                      .color = DESATURATED_GREEN,
                                      .name = "Orc",
-                                     .blocks = true }));
+                                     .blocks = true,
+                                     .type = ENTITY_BASIC_MONSTER,
+                                     .fighter = fighter }));
         }
         else
         {
+            rg_fighter fighter = { .hp = 16, .defence = 1, .power = 4 };
             ARRAY_PUSH(entities,
                        ((rg_entity){ .x = x,
                                      .y = y,
                                      .ch = 'T',
                                      .color = DARKER_GREEN,
                                      .name = "Troll",
-                                     .blocks = true }));
+                                     .blocks = true,
+                                     .type = ENTITY_BASIC_MONSTER,
+                                     .fighter = fighter }));
         }
     }
 }
