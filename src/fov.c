@@ -89,6 +89,13 @@ bool fov_map_is_in_fov(rg_fov_map *m, int x, int y)
     return m->cells[x + y * m->width].fov;
 }
 
+bool fov_map_is_walkable(rg_fov_map *m, int x, int y)
+{
+    if (!fov_map_in_bounds(m, x, y))
+        return false;
+    return m->cells[x + y * m->width].walkable;
+}
+
 void fov_map_set_props(rg_fov_map *m,
                        int x,
                        int y,

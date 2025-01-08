@@ -32,6 +32,7 @@ void fov_map_create(rg_fov_map *m, int w, int h);
 void fov_map_destroy(rg_fov_map *m);
 bool fov_map_in_bounds(rg_fov_map *m, int x, int y);
 bool fov_map_is_in_fov(rg_fov_map *m, int x, int y);
+bool fov_map_is_walkable(rg_fov_map *m, int x, int y);
 
 void fov_map_set_props(rg_fov_map *m,
                        int x,
