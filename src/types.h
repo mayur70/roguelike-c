@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <time.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 
 #ifdef  _WIN32

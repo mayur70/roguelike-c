@@ -40,6 +40,9 @@ typedef struct rg_game_state_data
 {
     int screen_width;
     int screen_height;
+    int bar_width;
+    int panel_height;
+    int panel_y;
     int map_width;
     int map_height;
     int room_max_size;
@@ -51,6 +54,7 @@ typedef struct rg_game_state_data
     rg_tileset tileset;
     rg_terminal terminal;
     rg_console console;
+    rg_console panel;
     rg_entity_array entities;
     rg_entity_id player;
     rg_map game_map;
@@ -148,7 +152,6 @@ void basic_monster_update(rg_entity* e,
         int distance = (int)distance_between(e, target);
         if (distance >= 2)
         {
-            // entity_move_towards(e, target->x, target->y, game_map, entities);
             entity_move_astar(e, target, game_map, entities);
         }
         else if (target->fighter.hp > 0)
@@ -163,6 +166,29 @@ void game_recompute_fov(rg_game_state_data* data)
                     data->entities.data[data->player].y,
                     data->fov_radius,
                     data->fov_light_walls);
+}
+
+void render_bar(rg_console* c,
+                int x,
+                int y,
+                int total_width,
+                const char* name,
+                int value,
+                int maximum,
+                SDL_Color bar_color,
+                SDL_Color back_color)
+{
+    int bar_width = (int)((float)(value / (float)maximum) * (float)total_width);
+
+    console_fill_rect(c, x, y, total_width, 1, back_color);
+    if (bar_width > 0) console_fill_rect(c, x, y, bar_width, 1, bar_color);
+
+    const char* fmt = "%s: %d/%d";
+    int sz = snprintf(NULL, 0, fmt, name, value, maximum);
+    char* buf = malloc(sizeof(char) * (sz + 1));
+    snprintf(buf, sz + 1, fmt, name, value, maximum);
+    console_print_txt(c, x + total_width / 2 - (sz / 2), y, buf, WHITE);
+    free(buf);
 }
 
 void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
@@ -292,9 +318,9 @@ void draw(rg_app* app, rg_game_state_data* data)
             break;
         }
 
-    SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 255);
-    SDL_RenderClear(app->renderer);
-
+    ///-----GameWorld---------------
+    console_begin(&data->console);
+    console_clear(&data->console, BLACK);
     for (int y = 0; y < game_map->height; y++)
     {
         for (int x = 0; x < game_map->width; x++)
@@ -322,15 +348,29 @@ void draw(rg_app* app, rg_game_state_data* data)
         const rg_entity* e = &entities->data[i];
         if (fov_map_is_in_fov(fov_map, e->x, e->y)) entity_draw(e, console);
     }
+    console_end(&data->console);
+
+    ///-----UI---------------
+    console_begin(&data->panel);
+    console_clear(&data->panel, BLACK);
 
     const rg_entity* player = &entities->data[data->player];
-    const char* hpfmt = "HP: %d / %d";
-    int sz =
-      snprintf(NULL, 0, hpfmt, player->fighter.hp, player->fighter.max_hp);
-    char* buf = malloc(sizeof(char) * (sz + 1));
-    snprintf(buf, sz + 1, hpfmt, player->fighter.hp, player->fighter.max_hp);
-    console_print_txt(&data->console, 1, data->screen_height - 2, buf, WHITE);
-    free(buf);
+    render_bar(&data->panel,
+               1,
+               1,
+               data->bar_width,
+               "HP",
+               player->fighter.hp,
+               player->fighter.max_hp,
+               LIGHT_RED,
+               DARK_RED);
+    console_end(&data->panel);
+
+    ///-----Screen/Window---------------
+    SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 255);
+    SDL_RenderClear(app->renderer);
+    console_flush(&data->console, 0, 0);
+    console_flush(&data->panel, 0, data->panel_y);
     SDL_RenderPresent(app->renderer);
 
     data->recompute_fov = false;
@@ -350,8 +390,11 @@ int main(int argc, char* argv[])
     rg_game_state_data data;
     data.screen_width = 80;
     data.screen_height = 50;
+    data.bar_width = 20;
+    data.panel_height = 7;
+    data.panel_y = data.screen_height - data.panel_height;
     data.map_width = 80;
-    data.map_height = 45;
+    data.map_height = 43;
     data.room_max_size = 10;
     data.room_min_size = 6;
     data.max_rooms = 30;
@@ -373,9 +416,14 @@ int main(int argc, char* argv[])
 
     console_create(&data.console,
                    app.renderer,
-                   data.terminal.width,
-                   data.terminal.height,
+                   data.screen_width,
+                   data.screen_height,
                    data.terminal.tileset);
+    console_create(&data.panel,
+                   app.renderer,
+                   data.screen_width,
+                   data.panel_height,
+                   &data.tileset);
 
     data.entities.capacity = data.max_monsters_per_room;
     data.entities.data =
@@ -447,6 +495,7 @@ int main(int argc, char* argv[])
     map_destroy(&data.game_map);
     free(data.entities.data);
     console_destroy(&data.console);
+    console_destroy(&data.panel);
     terminal_destroy(&data.terminal);
     tileset_destroy(&data.tileset);
 

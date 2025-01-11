@@ -1,6 +1,9 @@
 #include "console.h"
 #include <string.h>
 
+#include "color.h"
+#include "types.h"
+
 void console_create(rg_console *c,
                     SDL_Renderer *r,
                     int w,
@@ -12,9 +15,20 @@ void console_create(rg_console *c,
     c->width = w;
     c->height = h;
     c->tileset = ts;
+    SDL_DisplayMode mode;
+    SDL_GetCurrentDisplayMode(0, &mode);
+
+    int render_w = c->width * c->tileset->tile_size;
+    int render_h = c->height * c->tileset->tile_size;
+    c->texture = SDL_CreateTexture(
+      r, mode.format, SDL_TEXTUREACCESS_TARGET, render_w, render_h);
 }
 
-void console_destroy(rg_console *c) {}
+void console_destroy(rg_console *c)
+{
+    if (c == NULL) return;
+    if (c->texture != NULL) SDL_DestroyTexture(c->texture);
+}
 
 void console_print(rg_console *c, int x, int y, int ch, SDL_Color color)
 {
@@ -47,11 +61,12 @@ void console_print(rg_console *c, int x, int y, int ch, SDL_Color color)
 
     SDL_RenderCopy(c->renderer, c->tileset->texture, src, &dest);
 }
-void console_print_txt(rg_console* c,
-    int x,
-    int y,
-    const char* txt,
-    SDL_Color color)
+
+void console_print_txt(rg_console *c,
+                       int x,
+                       int y,
+                       const char *txt,
+                       SDL_Color color)
 {
     int penx = x, peny = y;
     while (*txt != '\0')
@@ -64,10 +79,48 @@ void console_print_txt(rg_console* c,
 
 void console_fill(rg_console *c, int x, int y, SDL_Color color)
 {
+    console_fill_rect(c, x, y, 1, 1, color);
+}
+
+void console_fill_rect(rg_console *c,
+                       int x,
+                       int y,
+                       int w,
+                       int h,
+                       SDL_Color color)
+{
     SDL_SetRenderDrawColor(c->renderer, color.r, color.g, color.b, color.a);
     SDL_Rect dest = { .x = x * c->tileset->tile_size,
                       .y = y * c->tileset->tile_size,
-                      .w = c->tileset->tile_size,
-                      .h = c->tileset->tile_size };
+                      .w = w * c->tileset->tile_size,
+                      .h = h * c->tileset->tile_size };
     SDL_RenderFillRect(c->renderer, &dest);
+}
+
+void console_clear(rg_console *c, SDL_Color color)
+{
+    SDL_SetRenderDrawColor(c->renderer, color.r, color.g, color.b, color.a);
+    SDL_RenderClear(c->renderer);
+}
+
+void console_begin(rg_console *c)
+{
+    ASSERT_M(c->texture != NULL);
+    SDL_SetRenderTarget(c->renderer, c->texture);
+}
+
+void console_end(rg_console *c)
+{
+    SDL_SetRenderTarget(c->renderer, NULL);
+}
+
+void console_flush(rg_console *c, int x, int y)
+{
+    ASSERT_M(c->texture != NULL);
+
+    SDL_Rect dest = { .x = x * c->tileset->tile_size,
+                      .y = y * c->tileset->tile_size,
+                      .w = c->width * c->tileset->tile_size,
+                      .h = c->height * c->tileset->tile_size };
+    SDL_RenderCopy(c->renderer, c->texture, NULL, &dest);
 }
