@@ -32,7 +32,8 @@
 typedef enum rg_game_state
 {
     ST_TURN_PLAYER,
-    ST_TURN_ENEMY
+    ST_TURN_ENEMY,
+    ST_TURN_PLAYER_DEAD
 } rg_game_state;
 
 typedef struct rg_game_state_data
@@ -64,6 +65,11 @@ float distance_between(rg_entity* a, rg_entity* b)
     int dx = b->x - a->x;
     int dy = b->y - a->y;
     return (float)sqrt(dx * dx + dy * dy);
+}
+
+int entity_sort_by_render_order(const rg_entity* lhs, const rg_entity* rhs)
+{
+    return lhs->render_order - rhs->render_order;
 }
 
 void entity_move_towards(rg_entity* e,
@@ -207,40 +213,55 @@ void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
         }
         if (e->type == TURN_LOG_DEAD)
         {
-            // TODO
+            rg_entity* p = &data->entities.data[data->player];
+            rg_turn_logs tmplogs;
+            turn_logs_create(&tmplogs);
+            entity_kill(e->entity, &tmplogs);
+            if (e->entity == p) data->game_state = ST_TURN_PLAYER_DEAD;
+            turn_logs_print(&tmplogs);
+            turn_logs_destroy(&tmplogs);
         }
+
+        if (data->game_state == ST_TURN_PLAYER_DEAD) break;
     }
 
     if (data->game_state == ST_TURN_ENEMY)
     {
         for (int i = 0; i < data->entities.len; i++)
         {
-            if (i != data->player)
+            if (i == data->player) continue;
+
+            rg_entity* e = &data->entities.data[i];
+            if (e->fighter.hp <= 0) continue;
+
+            rg_entity* player = &data->entities.data[data->player];
+            if (e->type == ENTITY_BASIC_MONSTER)
             {
-                rg_entity* e = &data->entities.data[i];
-                rg_entity* player = &data->entities.data[data->player];
-                if (e->type == ENTITY_BASIC_MONSTER)
+
+                turn_logs_clear(&data->logs);
+                basic_monster_update(e,
+                                     player,
+                                     &data->fov_map,
+                                     &data->game_map,
+                                     &data->entities,
+                                     &data->logs);
+
+                for (int i = 0; i < data->logs.len; i++)
                 {
-
-                    turn_logs_clear(&data->logs);
-                    basic_monster_update(e,
-                                         player,
-                                         &data->fov_map,
-                                         &data->game_map,
-                                         &data->entities,
-                                         &data->logs);
-
-                    for (int i = 0; i < data->logs.len; i++)
+                    rg_turn_log_entry* log_entry = &data->logs.data[i];
+                    if (log_entry->type == TURN_LOG_MESSAGE)
                     {
-                        rg_turn_log_entry* log_entry = &data->logs.data[i];
-                        if (log_entry->type == TURN_LOG_MESSAGE)
-                        {
-                            SDL_Log("%s", log_entry->msg);
-                        }
-                        if (log_entry->type == TURN_LOG_DEAD)
-                        {
-                            // TODO
-                        }
+                        SDL_Log("%s", log_entry->msg);
+                    }
+                    if (log_entry->type == TURN_LOG_DEAD)
+                    {
+                        rg_turn_logs tmplogs;
+                        turn_logs_create(&tmplogs);
+                        entity_kill(log_entry->entity, &tmplogs);
+                        if (log_entry->entity == player)
+                            data->game_state = ST_TURN_PLAYER_DEAD;
+                        turn_logs_print(&tmplogs);
+                        turn_logs_destroy(&tmplogs);
                     }
                 }
             }
@@ -255,6 +276,17 @@ void draw(rg_app* app, rg_game_state_data* data)
     rg_fov_map* fov_map = &data->fov_map;
     rg_console* console = &data->console;
     rg_entity_array* entities = &data->entities;
+
+    qsort(entities->data,
+          entities->len,
+          sizeof(*entities->data),
+          entity_sort_by_render_order);
+    for (int i = 0; i < entities->len; i++)
+        if (entities->data[i].type == ENTITY_PLAYER)
+        {
+            data->player = i;
+            break;
+        }
 
     SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 255);
     SDL_RenderClear(app->renderer);
@@ -346,7 +378,8 @@ int main(int argc, char* argv[])
                              .name = "player",
                              .blocks = true,
                              .type = ENTITY_PLAYER,
-                             .fighter = fighter }));
+                             .fighter = fighter,
+                             .render_order = RENDER_ORDER_ACTOR }));
     data.player = data.entities.len - 1;
 
     turn_logs_create(&data.logs);

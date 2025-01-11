@@ -193,7 +193,8 @@ void map_place_entities(rg_map *m,
                                      .name = "Orc",
                                      .blocks = true,
                                      .type = ENTITY_BASIC_MONSTER,
-                                     .fighter = fighter }));
+                                     .fighter = fighter,
+                                     .render_order = RENDER_ORDER_ACTOR }));
         }
         else
         {
@@ -206,7 +207,8 @@ void map_place_entities(rg_map *m,
                                      .name = "Troll",
                                      .blocks = true,
                                      .type = ENTITY_BASIC_MONSTER,
-                                     .fighter = fighter }));
+                                     .fighter = fighter,
+                                     .render_order = RENDER_ORDER_ACTOR }));
         }
     }
 }

@@ -8,6 +8,8 @@
 #include "console.h"
 #include "turn_log.h"
 
+#define MAX_ENTITY_NAME 50
+
 typedef size_t rg_entity_id;
 
 typedef enum rg_entity_type
@@ -15,6 +17,13 @@ typedef enum rg_entity_type
     ENTITY_PLAYER,
     ENTITY_BASIC_MONSTER
 } rg_entity_type;
+
+typedef enum rg_render_order
+{
+    RENDER_ORDER_CORPSE,
+    RENDER_ORDER_ITEM,
+    RENDER_ORDER_ACTOR
+} rg_render_order;
 
 typedef struct rg_fighter
 {
@@ -29,10 +38,11 @@ typedef struct rg_entity
     int x, y;
     char ch;
     SDL_Color color;
-    const char *name;
+    char name[MAX_ENTITY_NAME];
     bool blocks;
     rg_entity_type type;
     rg_fighter fighter;
+    rg_render_order render_order;
 } rg_entity;
 
 typedef struct rg_entity_array
@@ -51,5 +61,6 @@ void entity_get_at_loc(rg_entity_array *entities,
                        rg_entity **entity);
 void entity_take_damage(rg_entity *e, int amount, rg_turn_logs* logs);
 void entity_attack(rg_entity *e, rg_entity *target, rg_turn_logs* logs);
+void entity_kill(rg_entity *e, rg_turn_logs *logs);
 
 #endif

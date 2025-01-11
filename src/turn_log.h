@@ -15,6 +15,7 @@ typedef struct rg_turn_log_entry
 {
     rg_turn_log_type type;
     char *msg;
+    struct rg_entity *entity;
 } rg_turn_log_entry;
 
 typedef struct rg_turn_logs
@@ -29,5 +30,7 @@ void turn_logs_destroy(rg_turn_logs *logs);
 
 void turn_logs_clear(rg_turn_logs *logs);
 void turn_logs_push(rg_turn_logs *logs, rg_turn_log_entry *entry);
+
+void turn_logs_print(rg_turn_logs *logs);
 
 #endif

@@ -16,4 +16,5 @@
 #define LIGHT_GROUND ((SDL_Color){ 200, 180, 50, 255 })
 #define DESATURATED_GREEN ((SDL_Color){ 63, 127, 63, 255 })
 #define DARKER_GREEN ((SDL_Color){ 0, 127, 0, 255 })
+#define DARK_RED ((SDL_Color){ 200, 0, 0, 255 })
 #endif
