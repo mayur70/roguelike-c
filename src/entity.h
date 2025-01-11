@@ -6,6 +6,7 @@
 #include <SDL.h>
 
 #include "console.h"
+#include "turn_log.h"
 
 typedef size_t rg_entity_id;
 
@@ -48,7 +49,7 @@ void entity_get_at_loc(rg_entity_array *entities,
                        int x,
                        int y,
                        rg_entity **entity);
-
-
+void entity_take_damage(rg_entity *e, int amount, rg_turn_logs* logs);
+void entity_attack(rg_entity *e, rg_entity *target, rg_turn_logs* logs);
 
 #endif

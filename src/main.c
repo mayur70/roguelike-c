@@ -13,6 +13,7 @@
 
 #include "app.h"
 #include "array.h"
+#include "astar.h"
 #include "color.h"
 #include "console.h"
 #include "entity.h"
@@ -22,8 +23,8 @@
 #include "panic.h"
 #include "terminal.h"
 #include "tileset.h"
+#include "turn_log.h"
 #include "types.h"
-#include "astar.h"
 
 #define DESIRED_FPS 20.0
 #define DESIRED_FRAME_RATE ((1.0 / DESIRED_FPS) * 1000.0)
@@ -55,6 +56,7 @@ typedef struct rg_game_state_data
     rg_fov_map fov_map;
     bool recompute_fov;
     rg_game_state game_state;
+    rg_turn_logs logs;
 } rg_game_state_data;
 
 float distance_between(rg_entity* a, rg_entity* b)
@@ -108,7 +110,7 @@ void entity_move_astar(rg_entity* e,
         }
     }
 
-    astar_path* path= astar_path_new_using_map(&map, (float)1.41);
+    astar_path* path = astar_path_new_using_map(&map, (float)1.41);
     astar_path_compute(path, e->x, e->y, target->x, target->y);
 
     if (!astar_path_is_empty(path) && astar_path_size(path) < 25)
@@ -132,18 +134,19 @@ void basic_monster_update(rg_entity* e,
                           rg_entity* target,
                           rg_fov_map* fov_map,
                           rg_map* game_map,
-                          rg_entity_array* entities)
+                          rg_entity_array* entities,
+                          rg_turn_logs* logs)
 {
     if (fov_map_is_in_fov(fov_map, e->x, e->y))
     {
         int distance = (int)distance_between(e, target);
         if (distance >= 2)
         {
-            //entity_move_towards(e, target->x, target->y, game_map, entities);
+            // entity_move_towards(e, target->x, target->y, game_map, entities);
             entity_move_astar(e, target, game_map, entities);
         }
         else if (target->fighter.hp > 0)
-            SDL_Log("The '%s' insults you! your ego is damaged!", e->name);
+            entity_attack(e, target, logs);
     }
 }
 
@@ -163,6 +166,8 @@ void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
     rg_action action;
     event_dispatch(event, &action);
 
+    turn_logs_clear(&data->logs);
+
     if (action.type == ACTION_NONE) return;
 
     if (action.type == ACTION_MOVEMENT && data->game_state == ST_TURN_PLAYER)
@@ -174,17 +179,15 @@ void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
             rg_entity* target = NULL;
             entity_get_at_loc(
               &data->entities, destination_x, destination_y, &target);
-
+            rg_entity* player = &data->entities.data[data->player];
             if (target == NULL)
             {
-                entity_move(
-                  &data->entities.data[data->player], action.dx, action.dy);
+                entity_move(player, action.dx, action.dy);
                 data->recompute_fov = true;
             }
             else
             {
-                SDL_Log("You kick the '%s' in shins, much to its annoyance!",
-                        target->name);
+                entity_attack(player, target, &data->logs);
             }
             data->game_state = ST_TURN_ENEMY;
         }
@@ -195,6 +198,19 @@ void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
     if (action.type == ACTION_ESCAPE || action.type == ACTION_QUIT)
         app->running = false;
 
+    for (int i = 0; i < data->logs.len; i++)
+    {
+        rg_turn_log_entry* e = &data->logs.data[i];
+        if (e->type == TURN_LOG_MESSAGE)
+        {
+            SDL_Log("%s", e->msg);
+        }
+        if (e->type == TURN_LOG_DEAD)
+        {
+            // TODO
+        }
+    }
+
     if (data->game_state == ST_TURN_ENEMY)
     {
         for (int i = 0; i < data->entities.len; i++)
@@ -204,11 +220,29 @@ void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
                 rg_entity* e = &data->entities.data[i];
                 rg_entity* player = &data->entities.data[data->player];
                 if (e->type == ENTITY_BASIC_MONSTER)
+                {
+
+                    turn_logs_clear(&data->logs);
                     basic_monster_update(e,
                                          player,
                                          &data->fov_map,
                                          &data->game_map,
-                                         &data->entities);
+                                         &data->entities,
+                                         &data->logs);
+
+                    for (int i = 0; i < data->logs.len; i++)
+                    {
+                        rg_turn_log_entry* log_entry = &data->logs.data[i];
+                        if (log_entry->type == TURN_LOG_MESSAGE)
+                        {
+                            SDL_Log("%s", log_entry->msg);
+                        }
+                        if (log_entry->type == TURN_LOG_DEAD)
+                        {
+                            // TODO
+                        }
+                    }
+                }
             }
         }
         data->game_state = ST_TURN_PLAYER;
@@ -315,6 +349,8 @@ int main(int argc, char* argv[])
                              .fighter = fighter }));
     data.player = data.entities.len - 1;
 
+    turn_logs_create(&data.logs);
+
     map_create(&data.game_map,
                data.map_width,
                data.map_height,
@@ -361,6 +397,7 @@ int main(int argc, char* argv[])
         SDL_Delay(sleep_time);
     }
 
+    turn_logs_destroy(&data.logs);
     map_destroy(&data.game_map);
     free(data.entities.data);
     console_destroy(&data.console);

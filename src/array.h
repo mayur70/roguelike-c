@@ -1,6 +1,10 @@
 #ifndef ARRAY_H
 #define ARRAY_H
 
+#include <assert.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
 #include "types.h"
 
 #define ARRAY_PUSH(arr, ele)                                                   \

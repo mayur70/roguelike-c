@@ -18,7 +18,9 @@ add_executable(
     src/entity.c
     src/game_map.c
     src/fov.c
-    src/astar.c )
+    src/astar.c 
+    src/turn_log.c
+)
 
 # target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
 # target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)

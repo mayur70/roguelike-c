@@ -3,6 +3,12 @@
 
 #include <assert.h>
 #include <time.h>
+#include <stdlib.h>
+
+
+#ifdef  _WIN32
+#define strdup _strdup
+#endif //  _WIN32
 
 
 #define MIN(x, y) (x < y ? x : y)
