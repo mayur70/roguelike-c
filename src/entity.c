@@ -66,7 +66,7 @@ void entity_attack(rg_entity* e, rg_entity* target, rg_turn_logs* logs)
 
         rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
                                     .msg = buf,
-                                    .entity = e };
+                                    .entity = target };
         turn_logs_push(logs, &entry);
     }
     else

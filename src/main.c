@@ -259,14 +259,18 @@ void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
                         turn_logs_create(&tmplogs);
                         entity_kill(log_entry->entity, &tmplogs);
                         if (log_entry->entity == player)
+                        {
                             data->game_state = ST_TURN_PLAYER_DEAD;
+                        }
                         turn_logs_print(&tmplogs);
                         turn_logs_destroy(&tmplogs);
                     }
                 }
+                if (data->game_state == ST_TURN_PLAYER_DEAD) break;
             }
         }
-        data->game_state = ST_TURN_PLAYER;
+        if (data->game_state != ST_TURN_PLAYER_DEAD)
+            data->game_state = ST_TURN_PLAYER;
     }
 }
 
@@ -318,6 +322,15 @@ void draw(rg_app* app, rg_game_state_data* data)
         const rg_entity* e = &entities->data[i];
         if (fov_map_is_in_fov(fov_map, e->x, e->y)) entity_draw(e, console);
     }
+
+    const rg_entity* player = &entities->data[data->player];
+    const char* hpfmt = "HP: %d / %d";
+    int sz =
+      snprintf(NULL, 0, hpfmt, player->fighter.hp, player->fighter.max_hp);
+    char* buf = malloc(sizeof(char) * (sz + 1));
+    snprintf(buf, sz + 1, hpfmt, player->fighter.hp, player->fighter.max_hp);
+    console_print_txt(&data->console, 1, data->screen_height - 2, buf, WHITE);
+    free(buf);
     SDL_RenderPresent(app->renderer);
 
     data->recompute_fov = false;
@@ -369,7 +382,7 @@ int main(int argc, char* argv[])
       malloc(sizeof(*data.entities.data) * data.entities.capacity);
     ASSERT_M(data.entities.data != NULL);
     data.entities.len = 0;
-    rg_fighter fighter = { .hp = 30, .defence = 2, .power = 5 };
+    rg_fighter fighter = { .hp = 30, .defence = 2, .power = 5, .max_hp = 30 };
     ARRAY_PUSH(&data.entities,
                ((rg_entity){ .x = 0,
                              .y = 0,
