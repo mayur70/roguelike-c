@@ -24,11 +24,6 @@ typedef struct rg_turn_log_entry
     rg_turn_log_type type;
     char *text;
     SDL_Color color;
-    // union
-    //{
-    //rg_turn_log_msg msg;
-    // struct rg_entity *entity;
-    //};
 } rg_turn_log_entry;
 
 typedef struct rg_turn_logs
@@ -36,9 +31,11 @@ typedef struct rg_turn_logs
     rg_turn_log_entry *data;
     size_t len;
     size_t capacity;
+    int width;
+    int height;
 } rg_turn_logs;
 
-void turn_logs_create(rg_turn_logs *logs);
+void turn_logs_create(rg_turn_logs *logs, int width, int height);
 void turn_logs_destroy(rg_turn_logs *logs);
 
 void turn_logs_clear(rg_turn_logs *logs);

@@ -1,18 +1,21 @@
 #include "turn_log.h"
 
 #include <string.h>
+#include <stdint.h>
 
 #include <SDL2/SDL.h>
 
 #include "array.h"
 #include "types.h"
 
-void turn_logs_create(rg_turn_logs* logs)
+void turn_logs_create(rg_turn_logs* logs, int width, int height)
 {
-    logs->capacity = 5;
+    logs->capacity = height;
     logs->data = malloc(sizeof(*logs->data) * logs->capacity);
     ASSERT_M(logs->data != NULL);
     logs->len = 0;
+    logs->width = width;
+    logs->height = height;
 }
 
 void turn_logs_destroy(rg_turn_logs* logs)
@@ -40,6 +43,17 @@ void turn_logs_clear(rg_turn_logs* logs)
 
 void turn_logs_push(rg_turn_logs* logs, rg_turn_log_entry* entry)
 {
+
+    //TODO: Split lines by width
+    int lines = 1;
+
+    if (logs->len + lines > logs->height)
+    {
+        rg_turn_log_entry* src = logs->data + lines;
+        size_t count = (logs->len - lines) * sizeof(rg_turn_log_entry);
+        memmove(logs->data, src, count);
+        logs->len -= lines;
+    }
     ARRAY_PUSH(logs, *entry);
 }
 

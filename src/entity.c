@@ -46,9 +46,9 @@ void entity_take_damage(rg_entity* e,
 
     if (e->fighter.hp <= 0)
     {
-        rg_turn_log_entry entry = { .type = TURN_LOG_DEAD,
-                                    .text = strdup(e->name) };
-        turn_logs_push(logs, &entry);
+        //rg_turn_log_entry entry = { .type = TURN_LOG_DEAD,
+          //                          .text = strdup(e->name) };
+        //turn_logs_push(logs, &entry);
         *is_dead = true;
     }
 }
@@ -66,7 +66,6 @@ void entity_attack(rg_entity* e,
     {
         bool is_dead;
         entity_take_damage(target, damage, logs, &is_dead);
-        if (is_dead) *dead_entity = target;
 
         const char* fmt = "%s attacks %s for %d hit points";
 
@@ -74,8 +73,15 @@ void entity_attack(rg_entity* e,
         char* buf = malloc(sizeof(char) * (len + 1));
         snprintf(buf, len, fmt, e->name, target->name, damage);
 
-        rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE, .text = buf };
+        rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
+                                    .text = buf,
+                                    .color = WHITE };
         turn_logs_push(logs, &entry);
+
+        if (is_dead)
+        {
+            *dead_entity = target;
+        }
     }
     else
     {
@@ -86,7 +92,9 @@ void entity_attack(rg_entity* e,
         char* buf = malloc(sizeof(char) * sz);
         snprintf(buf, len, fmt, e->name, target->name);
 
-        rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE, .text = buf };
+        rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
+                                    .text = buf,
+                                    .color = WHITE };
         turn_logs_push(logs, &entry);
     }
 }
@@ -107,6 +115,7 @@ void entity_kill(rg_entity* e, rg_turn_logs* logs)
         const char* logfmt = "%s is dead!";
         const int sz1 = snprintf(NULL, 0, logfmt, e->name);
         entry.text = malloc(sizeof(char) * sz1 + 1);
+        entry.color = ORANGE;
         snprintf(entry.text, sz1, logfmt, e->name);
         turn_logs_push(logs, &entry);
 
@@ -119,6 +128,7 @@ void entity_kill(rg_entity* e, rg_turn_logs* logs)
         const char* logfmt = "You died!";
         const int sz1 = snprintf(NULL, 0, logfmt);
         entry.text = malloc(sizeof(char) * sz1 + 1);
+        entry.color = RED;
         snprintf(entry.text, sz1, logfmt);
         turn_logs_push(logs, &entry);
     }

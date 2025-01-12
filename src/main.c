@@ -43,6 +43,9 @@ typedef struct rg_game_state_data
     int bar_width;
     int panel_height;
     int panel_y;
+    int message_x;
+    int message_width;
+    int message_height;
     int map_width;
     int map_height;
     int room_max_size;
@@ -207,7 +210,6 @@ void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
     rg_action action;
     event_dispatch(event, &action);
 
-
     if (action.type == ACTION_NONE) return;
 
     if (action.type == ACTION_MOVEMENT && data->game_state == ST_TURN_PLAYER)
@@ -350,6 +352,12 @@ void draw(rg_app* app, rg_game_state_data* data)
                player->fighter.max_hp,
                LIGHT_RED,
                DARK_RED);
+    for (int i = 0, y = 1; i < data->logs.len; i++, y++)
+    {
+        rg_turn_log_entry* entry = &data->logs.data[i];
+        console_print_txt(
+          &data->panel, data->message_x, y, entry->text, entry->color);
+    }
     console_end(&data->panel);
 
     ///-----Screen/Window---------------
@@ -379,6 +387,9 @@ int main(int argc, char* argv[])
     data.bar_width = 20;
     data.panel_height = 7;
     data.panel_y = data.screen_height - data.panel_height;
+    data.message_x = data.bar_width + 2;
+    data.message_width = data.screen_width - data.bar_width - 2;
+    data.message_height = data.panel_height - 1;
     data.map_width = 80;
     data.map_height = 43;
     data.room_max_size = 10;
@@ -429,7 +440,7 @@ int main(int argc, char* argv[])
                              .render_order = RENDER_ORDER_ACTOR }));
     data.player = data.entities.len - 1;
 
-    turn_logs_create(&data.logs);
+    turn_logs_create(&data.logs, data.message_width, data.message_height);
 
     map_create(&data.game_map,
                data.map_width,
@@ -463,11 +474,10 @@ int main(int argc, char* argv[])
 
         Uint64 frame_start = SDL_GetPerformanceCounter();
 
-        
-        turn_logs_clear(&data.logs);
+        //turn_logs_clear(&data.logs);
         update(&app, &event, &data);
         draw(&app, &data);
-        turn_logs_print(&data.logs);
+        //turn_logs_print(&data.logs);
 
         Uint64 frame_end = SDL_GetPerformanceCounter();
         double dt = (frame_end - frame_start) /
