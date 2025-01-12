@@ -379,7 +379,7 @@ void draw(rg_app* app, rg_game_state_data* data)
 int main(int argc, char* argv[])
 {
 #ifdef _WIN32
-    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
+    //SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
 #endif
 
     srand((unsigned int)time(NULL));
