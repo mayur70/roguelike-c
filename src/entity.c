@@ -46,9 +46,9 @@ void entity_take_damage(rg_entity* e,
 
     if (e->fighter.hp <= 0)
     {
-        //rg_turn_log_entry entry = { .type = TURN_LOG_DEAD,
-          //                          .text = strdup(e->name) };
-        //turn_logs_push(logs, &entry);
+        // rg_turn_log_entry entry = { .type = TURN_LOG_DEAD,
+        //                           .text = strdup(e->name) };
+        // turn_logs_push(logs, &entry);
         *is_dead = true;
     }
 }
@@ -116,12 +116,14 @@ void entity_kill(rg_entity* e, rg_turn_logs* logs)
         const int sz1 = snprintf(NULL, 0, logfmt, e->name);
         entry.text = malloc(sizeof(char) * sz1 + 1);
         entry.color = ORANGE;
-        snprintf(entry.text, sz1, logfmt, e->name);
+        snprintf(entry.text, sz1 + 1, logfmt, e->name);
         turn_logs_push(logs, &entry);
 
+        char* buf = strdup(e->name);
         const char* fmt = "remains of %s";
-        const int sz = snprintf(NULL, 0, fmt, e->name);
-        snprintf(e->name, sz, fmt, e->name);
+        const int sz = snprintf(NULL, 0, fmt, buf);
+        snprintf(e->name, sz + 1, fmt, buf);
+        free(buf);
     }
     else
     {
@@ -129,7 +131,7 @@ void entity_kill(rg_entity* e, rg_turn_logs* logs)
         const int sz1 = snprintf(NULL, 0, logfmt);
         entry.text = malloc(sizeof(char) * sz1 + 1);
         entry.color = RED;
-        snprintf(entry.text, sz1, logfmt);
+        snprintf(entry.text, sz1 + 1, logfmt);
         turn_logs_push(logs, &entry);
     }
 }

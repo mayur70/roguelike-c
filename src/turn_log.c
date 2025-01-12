@@ -43,6 +43,14 @@ void turn_logs_clear(rg_turn_logs* logs)
 
 void turn_logs_push(rg_turn_logs* logs, rg_turn_log_entry* entry)
 {
+    if (entry->text != NULL)
+    {
+        int ch = entry->text[0];
+        if (ch > 96 && ch < 122)
+        {
+            entry->text[0] = ch - 32;
+        }
+    }
 
     //TODO: Split lines by width
     int lines = 1;

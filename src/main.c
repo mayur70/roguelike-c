@@ -225,13 +225,15 @@ char* get_names_under_mouse(rg_game_state_data* data)
             else
             {
                 size_t sz = strlen(e->name);
-                buf = realloc(buf, sizeof(char) * (buf_len + sz + 2));
+                size_t newsize = sizeof(char) * (buf_len + sz + 3);
+                buf = realloc(buf, newsize);
                 ASSERT_M(buf != NULL);
-                strcpy_s(buf + buf_len, sz, e->name);
-                buf_len += sz;
                 buf[buf_len] = ',';
                 buf[buf_len + 1] = ' ';
                 buf_len += 2;
+                memcpy(buf + buf_len, e->name, sz);
+                buf_len += sz;
+                buf[buf_len] = '\0';
             }
         }
     }
@@ -264,14 +266,6 @@ void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
 
     data->mouse_position.x = data->mouse_position.x / data->tileset.tile_size;
     data->mouse_position.y = data->mouse_position.y / data->tileset.tile_size;
-
-    // SDL_Log("mouse: w: %dx%d, l: %.02fx%.02f, mouse_position: %dx%d",
-    //         wx,
-    //         wy,
-    //         lx,
-    //         ly,
-    //         data->mouse_position.x,
-    //         data->mouse_position.y);
 
     if (action.type == ACTION_NONE) return;
 
@@ -326,7 +320,6 @@ void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
             if (e->type == ENTITY_BASIC_MONSTER)
             {
                 rg_entity* dead_entity;
-                // turn_logs_clear(&data->logs);
                 basic_monster_update(e,
                                      player,
                                      &data->fov_map,
@@ -502,7 +495,7 @@ int main(int argc, char* argv[])
                              .y = 0,
                              .ch = '@',
                              .color = WHITE,
-                             .name = "player",
+                             .name = "Player",
                              .blocks = true,
                              .type = ENTITY_PLAYER,
                              .fighter = fighter,
