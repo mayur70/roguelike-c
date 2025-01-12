@@ -19,4 +19,5 @@
 #define DARKER_GREEN ((SDL_Color){ 0, 127, 0, 255 })
 #define DARK_RED ((SDL_Color){ 191, 0, 0, 255 })
 #define LIGHT_RED ((SDL_Color){ 255, 63, 63, 255 })
+#define LIGHT_GREY ((SDL_Color){ 159, 159, 159, 255 })
 #endif

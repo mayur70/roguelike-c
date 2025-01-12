@@ -1,6 +1,6 @@
 #include "events.h"
 
-void event_dispatch(SDL_Event *event, rg_action *action)
+void event_dispatch(SDL_Event *event, rg_action *action, SDL_Point* mouse_position)
 {
     // Default value
     action->type = ACTION_NONE;
@@ -63,6 +63,12 @@ void event_dispatch(SDL_Event *event, rg_action *action)
             action->type = ACTION_ESCAPE;
             break;
         }
+        break;
+    }
+    case SDL_MOUSEMOTION:
+    {
+        mouse_position->x = event->motion.x;
+        mouse_position->y = event->motion.y;
         break;
     }
     default:

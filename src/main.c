@@ -65,6 +65,7 @@ typedef struct rg_game_state_data
     bool recompute_fov;
     rg_game_state game_state;
     rg_turn_logs logs;
+    SDL_Point mouse_position;
 } rg_game_state_data;
 
 float distance_between(rg_entity* a, rg_entity* b)
@@ -203,12 +204,74 @@ void render_bar(rg_console* c,
     free(buf);
 }
 
+char* get_names_under_mouse(rg_game_state_data* data)
+{
+    const int x = data->mouse_position.x;
+    const int y = data->mouse_position.y;
+    ASSERT_M(x >= 0 && x <= 800);
+    char* buf = NULL;
+    size_t buf_len = 0;
+    for (int i = 0; i < data->entities.len; i++)
+    {
+        const rg_entity* e = &data->entities.data[i];
+        rg_fov_map* fov_map = &data->fov_map;
+        if (e->x == x && e->y == y && fov_map_is_in_fov(fov_map, x, y))
+        {
+            if (buf == NULL)
+            {
+                buf_len = strlen(e->name);
+                buf = strdup(e->name);
+            }
+            else
+            {
+                size_t sz = strlen(e->name);
+                buf = realloc(buf, sizeof(char) * (buf_len + sz + 2));
+                ASSERT_M(buf != NULL);
+                strcpy_s(buf + buf_len, sz, e->name);
+                buf_len += sz;
+                buf[buf_len] = ',';
+                buf[buf_len + 1] = ' ';
+                buf_len += 2;
+            }
+        }
+    }
+    return buf;
+}
+
 void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
 {
     rg_map* game_map = &data->game_map;
     rg_fov_map* fov_map = &data->fov_map;
     rg_action action;
-    event_dispatch(event, &action);
+    event_dispatch(event, &action, &data->mouse_position);
+    int wx, wy;
+    SDL_GetMouseState(&wx, &wy);
+    float lx, ly;
+    SDL_RenderWindowToLogical(app->renderer, wx, wy, &lx, &ly);
+
+    int rw, rh;
+    SDL_RenderGetLogicalSize(app->renderer, &rw, &rh);
+    if (lx < 0) data->mouse_position.x = 0;
+    else if (lx > rw)
+        data->mouse_position.x = rw;
+    else
+        data->mouse_position.x = (int)lx;
+    if (ly < 0) data->mouse_position.y = 0;
+    else if (ly > rh)
+        data->mouse_position.y = rh;
+    else
+        data->mouse_position.y = (int)ly;
+
+    data->mouse_position.x = data->mouse_position.x / data->tileset.tile_size;
+    data->mouse_position.y = data->mouse_position.y / data->tileset.tile_size;
+
+    // SDL_Log("mouse: w: %dx%d, l: %.02fx%.02f, mouse_position: %dx%d",
+    //         wx,
+    //         wy,
+    //         lx,
+    //         ly,
+    //         data->mouse_position.x,
+    //         data->mouse_position.y);
 
     if (action.type == ACTION_NONE) return;
 
@@ -352,6 +415,12 @@ void draw(rg_app* app, rg_game_state_data* data)
                player->fighter.max_hp,
                LIGHT_RED,
                DARK_RED);
+    char* names = get_names_under_mouse(data);
+    if (names != NULL)
+    {
+        console_print_txt(&data->panel, 1, 0, names, LIGHT_GREY);
+        free(names);
+    }
     for (int i = 0, y = 1; i < data->logs.len; i++, y++)
     {
         rg_turn_log_entry* entry = &data->logs.data[i];
@@ -465,19 +534,20 @@ int main(int argc, char* argv[])
 
     // first draw before waitevent
     game_recompute_fov(&data);
+    SDL_Event event = { 0 };
+    update(&app, &event, &data);
     draw(&app, &data);
 
     while (app.running)
     {
-        SDL_Event event = { 0 };
         SDL_WaitEvent(&event);
 
         Uint64 frame_start = SDL_GetPerformanceCounter();
 
-        //turn_logs_clear(&data.logs);
+        // turn_logs_clear(&data.logs);
         update(&app, &event, &data);
         draw(&app, &data);
-        //turn_logs_print(&data.logs);
+        // turn_logs_print(&data.logs);
 
         Uint64 frame_end = SDL_GetPerformanceCounter();
         double dt = (frame_end - frame_start) /

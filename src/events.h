@@ -23,6 +23,6 @@ typedef struct rg_action
     };
 } rg_action;
 
-void event_dispatch(SDL_Event *event, rg_action *action);
+void event_dispatch(SDL_Event *event, rg_action *action, SDL_Point* mouse_position);
 
 #endif
