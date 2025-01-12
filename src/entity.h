@@ -59,8 +59,14 @@ void entity_get_at_loc(rg_entity_array *entities,
                        int x,
                        int y,
                        rg_entity **entity);
-void entity_take_damage(rg_entity *e, int amount, rg_turn_logs* logs);
-void entity_attack(rg_entity *e, rg_entity *target, rg_turn_logs* logs);
+void entity_take_damage(rg_entity *e,
+                        int amount,
+                        rg_turn_logs *logs,
+                        bool *is_dead);
+void entity_attack(rg_entity *e,
+                   rg_entity *target,
+                   rg_turn_logs *logs,
+                   rg_entity **dead_entity);
 void entity_kill(rg_entity *e, rg_turn_logs *logs);
 
 #endif

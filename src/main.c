@@ -145,8 +145,17 @@ void basic_monster_update(rg_entity* e,
                           rg_fov_map* fov_map,
                           rg_map* game_map,
                           rg_entity_array* entities,
-                          rg_turn_logs* logs)
+                          rg_turn_logs* logs,
+                          rg_entity** dead_entity)
 {
+    ASSERT_M(e != NULL);
+    ASSERT_M(target != NULL);
+    ASSERT_M(fov_map != NULL);
+    ASSERT_M(game_map != NULL);
+    ASSERT_M(entities != NULL);
+    ASSERT_M(logs != NULL);
+    ASSERT_M(dead_entity != NULL);
+    *dead_entity = NULL;
     if (fov_map_is_in_fov(fov_map, e->x, e->y))
     {
         int distance = (int)distance_between(e, target);
@@ -155,7 +164,7 @@ void basic_monster_update(rg_entity* e,
             entity_move_astar(e, target, game_map, entities);
         }
         else if (target->fighter.hp > 0)
-            entity_attack(e, target, logs);
+            entity_attack(e, target, logs, dead_entity);
     }
 }
 
@@ -198,7 +207,6 @@ void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
     rg_action action;
     event_dispatch(event, &action);
 
-    turn_logs_clear(&data->logs);
 
     if (action.type == ACTION_NONE) return;
 
@@ -219,9 +227,19 @@ void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
             }
             else
             {
-                entity_attack(player, target, &data->logs);
+                rg_entity* dead_entity;
+                entity_attack(player, target, &data->logs, &dead_entity);
+                if (dead_entity != NULL)
+                {
+                    entity_kill(dead_entity, &data->logs);
+                    if (dead_entity == player)
+                    {
+                        data->game_state = ST_TURN_PLAYER_DEAD;
+                    }
+                }
             }
-            data->game_state = ST_TURN_ENEMY;
+            if (data->game_state != ST_TURN_PLAYER_DEAD)
+                data->game_state = ST_TURN_ENEMY;
         }
     }
 
@@ -229,27 +247,6 @@ void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
 
     if (action.type == ACTION_ESCAPE || action.type == ACTION_QUIT)
         app->running = false;
-
-    for (int i = 0; i < data->logs.len; i++)
-    {
-        rg_turn_log_entry* e = &data->logs.data[i];
-        if (e->type == TURN_LOG_MESSAGE)
-        {
-            SDL_Log("%s", e->msg);
-        }
-        if (e->type == TURN_LOG_DEAD)
-        {
-            rg_entity* p = &data->entities.data[data->player];
-            rg_turn_logs tmplogs;
-            turn_logs_create(&tmplogs);
-            entity_kill(e->entity, &tmplogs);
-            if (e->entity == p) data->game_state = ST_TURN_PLAYER_DEAD;
-            turn_logs_print(&tmplogs);
-            turn_logs_destroy(&tmplogs);
-        }
-
-        if (data->game_state == ST_TURN_PLAYER_DEAD) break;
-    }
 
     if (data->game_state == ST_TURN_ENEMY)
     {
@@ -263,33 +260,22 @@ void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
             rg_entity* player = &data->entities.data[data->player];
             if (e->type == ENTITY_BASIC_MONSTER)
             {
-
-                turn_logs_clear(&data->logs);
+                rg_entity* dead_entity;
+                // turn_logs_clear(&data->logs);
                 basic_monster_update(e,
                                      player,
                                      &data->fov_map,
                                      &data->game_map,
                                      &data->entities,
-                                     &data->logs);
+                                     &data->logs,
+                                     &dead_entity);
 
-                for (int i = 0; i < data->logs.len; i++)
+                if (dead_entity != NULL)
                 {
-                    rg_turn_log_entry* log_entry = &data->logs.data[i];
-                    if (log_entry->type == TURN_LOG_MESSAGE)
+                    entity_kill(dead_entity, &data->logs);
+                    if (dead_entity == player)
                     {
-                        SDL_Log("%s", log_entry->msg);
-                    }
-                    if (log_entry->type == TURN_LOG_DEAD)
-                    {
-                        rg_turn_logs tmplogs;
-                        turn_logs_create(&tmplogs);
-                        entity_kill(log_entry->entity, &tmplogs);
-                        if (log_entry->entity == player)
-                        {
-                            data->game_state = ST_TURN_PLAYER_DEAD;
-                        }
-                        turn_logs_print(&tmplogs);
-                        turn_logs_destroy(&tmplogs);
+                        data->game_state = ST_TURN_PLAYER_DEAD;
                     }
                 }
                 if (data->game_state == ST_TURN_PLAYER_DEAD) break;
@@ -379,7 +365,7 @@ void draw(rg_app* app, rg_game_state_data* data)
 int main(int argc, char* argv[])
 {
 #ifdef _WIN32
-    //SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
+    // SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
 #endif
 
     srand((unsigned int)time(NULL));
@@ -477,8 +463,11 @@ int main(int argc, char* argv[])
 
         Uint64 frame_start = SDL_GetPerformanceCounter();
 
+        
+        turn_logs_clear(&data.logs);
         update(&app, &event, &data);
         draw(&app, &data);
+        turn_logs_print(&data.logs);
 
         Uint64 frame_end = SDL_GetPerformanceCounter();
         double dt = (frame_end - frame_start) /

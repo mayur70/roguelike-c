@@ -36,56 +36,65 @@ void entity_get_at_loc(rg_entity_array* entities,
     *entity = NULL;
 }
 
-void entity_take_damage(rg_entity* e, int amount, rg_turn_logs* logs)
+void entity_take_damage(rg_entity* e,
+                        int amount,
+                        rg_turn_logs* logs,
+                        bool* is_dead)
 {
+    *is_dead = false;
     e->fighter.hp -= amount;
 
     if (e->fighter.hp <= 0)
     {
         rg_turn_log_entry entry = { .type = TURN_LOG_DEAD,
-                                    .msg = strdup(e->name),
-                                    .entity = e };
+                                    .text = strdup(e->name) };
         turn_logs_push(logs, &entry);
+        *is_dead = true;
     }
 }
 
-void entity_attack(rg_entity* e, rg_entity* target, rg_turn_logs* logs)
+void entity_attack(rg_entity* e,
+                   rg_entity* target,
+                   rg_turn_logs* logs,
+                   rg_entity** dead_entity)
 {
+    ASSERT_M(dead_entity != NULL);
+    *dead_entity = NULL;
     int damage = e->fighter.power - target->fighter.defence;
 
     if (damage > 0)
     {
-        entity_take_damage(target, damage, logs);
+        bool is_dead;
+        entity_take_damage(target, damage, logs, &is_dead);
+        if (is_dead) *dead_entity = target;
 
         const char* fmt = "%s attacks %s for %d hit points";
-        // SDL_Log(fmt, e->name, target->name, damage);
 
         int len = snprintf(NULL, 0, fmt, e->name, target->name, damage);
         char* buf = malloc(sizeof(char) * (len + 1));
         snprintf(buf, len, fmt, e->name, target->name, damage);
 
-        rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
-                                    .msg = buf,
-                                    .entity = target };
+        rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE, .text = buf };
         turn_logs_push(logs, &entry);
     }
     else
     {
         const char* fmt = "%s attacks %s but does no damage";
-        // SDL_Log(fmt, e->name, target->name);
 
         long len = snprintf(NULL, 0, fmt, e->name, target->name);
         size_t sz = len + 1;
         char* buf = malloc(sizeof(char) * sz);
         snprintf(buf, len, fmt, e->name, target->name);
 
-        rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE, .msg = buf };
+        rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE, .text = buf };
         turn_logs_push(logs, &entry);
     }
 }
 
 void entity_kill(rg_entity* e, rg_turn_logs* logs)
 {
+    ASSERT_M(e != NULL);
+    ASSERT_M(logs != NULL);
     e->ch = '%';
     e->color = DARK_RED;
     e->blocks = false;
@@ -97,8 +106,8 @@ void entity_kill(rg_entity* e, rg_turn_logs* logs)
 
         const char* logfmt = "%s is dead!";
         const int sz1 = snprintf(NULL, 0, logfmt, e->name);
-        entry.msg = malloc(sizeof(char) * sz1 + 1);
-        snprintf(entry.msg, sz1, logfmt, e->name);
+        entry.text = malloc(sizeof(char) * sz1 + 1);
+        snprintf(entry.text, sz1, logfmt, e->name);
         turn_logs_push(logs, &entry);
 
         const char* fmt = "remains of %s";
@@ -109,8 +118,8 @@ void entity_kill(rg_entity* e, rg_turn_logs* logs)
     {
         const char* logfmt = "You died!";
         const int sz1 = snprintf(NULL, 0, logfmt);
-        entry.msg = malloc(sizeof(char) * sz1 + 1);
-        snprintf(entry.msg, sz1, logfmt);
+        entry.text = malloc(sizeof(char) * sz1 + 1);
+        snprintf(entry.text, sz1, logfmt);
         turn_logs_push(logs, &entry);
     }
 }

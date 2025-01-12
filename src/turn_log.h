@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 
+#include <SDL.h>
+
 typedef enum rg_turn_log_type
 {
     TURN_LOG_MESSAGE,
@@ -11,11 +13,22 @@ typedef enum rg_turn_log_type
     TURN_LOG_COUNT
 } rg_turn_log_type;
 
+typedef struct rg_turn_log_msg
+{
+    char *text;
+    SDL_Color color;
+} rg_turn_log_msg;
+
 typedef struct rg_turn_log_entry
 {
     rg_turn_log_type type;
-    char *msg;
-    struct rg_entity *entity;
+    char *text;
+    SDL_Color color;
+    // union
+    //{
+    //rg_turn_log_msg msg;
+    // struct rg_entity *entity;
+    //};
 } rg_turn_log_entry;
 
 typedef struct rg_turn_logs
