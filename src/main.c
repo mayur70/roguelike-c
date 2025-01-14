@@ -52,6 +52,7 @@ typedef struct rg_game_state_data
     int room_min_size;
     int max_rooms;
     int max_monsters_per_room;
+    int max_items_per_room;
     bool fov_light_walls;
     int fov_radius;
     rg_tileset tileset;
@@ -458,6 +459,7 @@ int main(int argc, char* argv[])
     data.room_min_size = 6;
     data.max_rooms = 30;
     data.max_monsters_per_room = 3;
+    data.max_items_per_room = 2;
     data.fov_light_walls = true;
     data.fov_radius = 10;
     data.game_state = ST_TURN_PLAYER;
@@ -511,6 +513,7 @@ int main(int argc, char* argv[])
                data.room_max_size,
                data.max_rooms,
                data.max_monsters_per_room,
+               data.max_items_per_room,
                &data.entities,
                data.player);
 

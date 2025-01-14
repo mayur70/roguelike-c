@@ -15,7 +15,8 @@ typedef size_t rg_entity_id;
 typedef enum rg_entity_type
 {
     ENTITY_PLAYER,
-    ENTITY_BASIC_MONSTER
+    ENTITY_BASIC_MONSTER,
+    ENTITY_ITEM,
 } rg_entity_type;
 
 typedef enum rg_render_order

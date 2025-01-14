@@ -37,6 +37,7 @@ void map_create(rg_map *m,
                 int room_max_size,
                 int max_rooms,
                 int max_monsters_per_room,
+                int max_items_per_room,
                 rg_entity_array *entities,
                 rg_entity_id player);
 void map_destroy(rg_map *m);
@@ -51,7 +52,8 @@ void map_create_v_tunnel(rg_map *m, int y1, int y2, int x);
 void map_place_entities(rg_map *m,
                         SDL_Rect *room,
                         rg_entity_array *entities,
-                        int max_monsters_per_room);
+                        int max_monsters_per_room,
+                        int max_items_per_room);
 
 void room_get_center(SDL_Rect *r, int *x, int *y);
 bool room_intersects(SDL_Rect *lhs, SDL_Rect *rhs);

@@ -23,6 +23,7 @@ void map_create(rg_map *m,
                 int room_max_size,
                 int max_rooms,
                 int max_monsters_per_room,
+                int max_items_per_room,
                 rg_entity_array *entities,
                 rg_entity_id player)
 {
@@ -87,7 +88,11 @@ void map_create(rg_map *m,
                 map_create_v_tunnel(m, prev_y, new_y, prev_x);
                 map_create_h_tunnel(m, prev_x, new_x, new_y);
             }
-            map_place_entities(m, &new_room, entities, max_monsters_per_room);
+            map_place_entities(m,
+                               &new_room,
+                               entities,
+                               max_monsters_per_room,
+                               max_items_per_room);
         }
 
         memcpy(&rooms.data[rooms.len], &new_room, sizeof(SDL_Rect));
@@ -158,7 +163,8 @@ void map_create_v_tunnel(rg_map *m, int y1, int y2, int x)
 void map_place_entities(rg_map *m,
                         SDL_Rect *room,
                         rg_entity_array *entities,
-                        int max_monsters_per_room)
+                        int max_monsters_per_room,
+                        int max_items_per_room)
 {
     int num_monsters = RAND_INT(0, max_monsters_per_room);
     for (int i = 0; i < num_monsters; i++)
@@ -210,6 +216,39 @@ void map_place_entities(rg_map *m,
                                      .fighter = fighter,
                                      .render_order = RENDER_ORDER_ACTOR }));
         }
+    }
+
+    int num_items = RAND_INT(0, max_items_per_room);
+    for (int i = 0; i < num_items; i++)
+    {
+        int x = RAND_INT(room->x + 1, room->x + room->w - 3);
+        int y = RAND_INT(room->y + 1, room->y + room->h - 3);
+
+        ASSERT_M(x != room->x && x != room->x + room->w);
+        ASSERT_M(y != room->y && y != room->y + room->h);
+
+        bool valid = true;
+        for (int m = 0; m < entities->len; m++)
+        {
+            rg_entity *e = &entities->data[m];
+            if (e->x == x && e->y == y)
+            {
+                valid = false;
+                break;
+            }
+        }
+
+        if (!valid) continue;
+
+        ARRAY_PUSH(entities,
+                   ((rg_entity){ .x = x,
+                                 .y = y,
+                                 .ch = '!',
+                                 .color = VIOLET,
+                                 .name = "Healing Potion",
+                                 .blocks = false,
+                                 .type = ENTITY_ITEM,
+                                 .render_order = RENDER_ORDER_ITEM }));
     }
 }
 
