@@ -58,6 +58,10 @@ void event_dispatch(SDL_Event *event, rg_action *action, SDL_Point* mouse_positi
             action->dx = 1;
             action->dy = 1;
             break;
+         
+            case SDLK_g:
+            action->type = ACTION_PICKUP;
+            break;
 
         case SDLK_ESCAPE:
             action->type = ACTION_ESCAPE;

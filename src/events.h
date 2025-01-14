@@ -9,6 +9,7 @@ typedef enum rg_action_type
     ACTION_QUIT,
     ACTION_ESCAPE,
     ACTION_MOVEMENT,
+    ACTION_PICKUP,
 } rg_action_type;
 
 typedef struct rg_action

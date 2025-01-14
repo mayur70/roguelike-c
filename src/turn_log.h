@@ -9,6 +9,7 @@ typedef enum rg_turn_log_type
 {
     TURN_LOG_MESSAGE,
     TURN_LOG_DEAD,
+    TURN_LOG_ITEM_ADDED,
 
     TURN_LOG_COUNT
 } rg_turn_log_type;

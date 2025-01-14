@@ -44,6 +44,7 @@ typedef struct rg_entity
     rg_entity_type type;
     rg_fighter fighter;
     rg_render_order render_order;
+    bool visible_on_map;
 } rg_entity;
 
 typedef struct rg_entity_array

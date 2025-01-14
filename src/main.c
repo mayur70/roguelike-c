@@ -36,6 +36,19 @@ typedef enum rg_game_state
     ST_TURN_PLAYER_DEAD
 } rg_game_state;
 
+// typedef struct rg_item
+//{
+//     const char* name;
+// } rg_item;
+
+typedef rg_entity* rg_item;
+typedef struct rg_inventory
+{
+    size_t capacity;
+    size_t len;
+    rg_item* data;
+} rg_inventory;
+
 typedef struct rg_game_state_data
 {
     int screen_width;
@@ -65,9 +78,56 @@ typedef struct rg_game_state_data
     rg_fov_map fov_map;
     bool recompute_fov;
     rg_game_state game_state;
+    rg_inventory inventory;
     rg_turn_logs logs;
     SDL_Point mouse_position;
 } rg_game_state_data;
+
+void inventory_create(rg_inventory* i, size_t capacity)
+{
+    memset(i, 0, sizeof(rg_inventory));
+    i->capacity = capacity;
+    i->len = 0;
+    i->data = malloc(sizeof(rg_inventory) * i->capacity);
+    ASSERT_M(i->data != NULL);
+}
+
+void inventory_destroy(rg_inventory* i)
+{
+    if (i == NULL) return;
+    if (i->data != NULL) free(i->data);
+}
+
+void inventory_add_item(rg_inventory* inventory,
+                        rg_entity* item,
+                        rg_turn_logs* logs)
+{
+    if (inventory->len >= inventory->capacity)
+    {
+        const char* fmt = "You cannot carry any more, your inventory is full";
+
+        int len = snprintf(NULL, 0, fmt);
+        char* buf = malloc(sizeof(char) * (len + 1));
+        snprintf(buf, len, fmt);
+        rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
+                                    .text = buf,
+                                    .color = YELLOW };
+        turn_logs_push(logs, &entry);
+
+        return;
+    }
+
+    const char* fmt = "You pick up the %s!";
+    int len = snprintf(NULL, 0, fmt, item->name);
+    char* buf = malloc(sizeof(char) * (len + 1));
+    snprintf(buf, len, fmt, item->name);
+    rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
+                                .text = buf,
+                                .color = BLUE };
+    turn_logs_push(logs, &entry);
+
+    ARRAY_PUSH(inventory, item);
+}
 
 float distance_between(rg_entity* a, rg_entity* b)
 {
@@ -302,6 +362,35 @@ void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
                 data->game_state = ST_TURN_ENEMY;
         }
     }
+    else if (action.type == ACTION_PICKUP && data->game_state == ST_TURN_PLAYER)
+    {
+        rg_entity* player = &data->entities.data[data->player];
+        bool status = false;
+        for (int i = 0; i < data->entities.len; i++)
+        {
+            rg_entity* e = &data->entities.data[i];
+            if (e->type == ENTITY_ITEM && e->x == player->x &&
+                e->y == player->y)
+            {
+                inventory_add_item(&data->inventory, e, &data->logs);
+                status = true;
+                e->visible_on_map = false;
+                data->game_state = ST_TURN_ENEMY;
+                break;
+            }
+        }
+        if (!status)
+        {
+            const char* fmt = "There is nothing here to pickup";
+            int len = snprintf(NULL, 0, fmt);
+            char* buf = malloc(sizeof(char) * (len + 1));
+            snprintf(buf, len, fmt);
+            rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
+                                        .text = buf,
+                                        .color = YELLOW };
+            turn_logs_push(&data->logs, &entry);
+        }
+    }
 
     if (data->recompute_fov) game_recompute_fov(data);
 
@@ -391,7 +480,7 @@ void draw(rg_app* app, rg_game_state_data* data)
     for (int i = 0; i < entities->len; i++)
     {
         const rg_entity* e = &entities->data[i];
-        if (fov_map_is_in_fov(fov_map, e->x, e->y)) entity_draw(e, console);
+        if (fov_map_is_in_fov(fov_map, e->x, e->y) && e->visible_on_map) entity_draw(e, console);
     }
     console_end(&data->console);
 
@@ -493,16 +582,21 @@ int main(int argc, char* argv[])
     data.entities.len = 0;
     rg_fighter fighter = { .hp = 30, .defence = 2, .power = 5, .max_hp = 30 };
     ARRAY_PUSH(&data.entities,
-               ((rg_entity){ .x = 0,
-                             .y = 0,
-                             .ch = '@',
-                             .color = WHITE,
-                             .name = "Player",
-                             .blocks = true,
-                             .type = ENTITY_PLAYER,
-                             .fighter = fighter,
-                             .render_order = RENDER_ORDER_ACTOR }));
+               ((rg_entity){
+                 .x = 0,
+                 .y = 0,
+                 .ch = '@',
+                 .color = WHITE,
+                 .name = "Player",
+                 .blocks = true,
+                 .type = ENTITY_PLAYER,
+                 .fighter = fighter,
+                 .render_order = RENDER_ORDER_ACTOR,
+                 .visible_on_map = true,
+               }));
     data.player = data.entities.len - 1;
+
+    inventory_create(&data.inventory, 26);
 
     turn_logs_create(&data.logs, data.message_width, data.message_height);
 
@@ -556,6 +650,7 @@ int main(int argc, char* argv[])
         SDL_Delay(sleep_time);
     }
 
+    inventory_destroy(&data.inventory);
     turn_logs_destroy(&data.logs);
     map_destroy(&data.game_map);
     free(data.entities.data);
