@@ -588,7 +588,7 @@ void draw(rg_app* app, rg_game_state_data* data)
     if (data->game_state == ST_SHOW_INVENTORY)
     {
         console_begin(&data->menu);
-        console_clear(&data->menu, ((SDL_Color){ 0, 0, 0, 1 }));
+        console_clear(&data->menu, ((SDL_Color){ 0, 0, 0, 0 }));
         const char* header =
           "Press the key next to an item to use it, or Esc to cancel.";
         inventory_draw(
@@ -604,10 +604,19 @@ void draw(rg_app* app, rg_game_state_data* data)
 
     if (data->game_state == ST_SHOW_INVENTORY)
     {
+
         int x =
           (int)((data->screen_width / (double)2) - (menu_width / (double)2));
         int y =
           (int)((data->screen_height / (double)2) - (menu_height / (double)2));
+        SDL_Rect r = { x * data->menu.tileset->tile_size,
+                       y * data->menu.tileset->tile_size,
+                       menu_width * data->menu.tileset->tile_size,
+                       menu_height * data->menu.tileset->tile_size };
+
+        SDL_SetRenderDrawBlendMode(app->renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 178);
+        SDL_RenderFillRect(app->renderer, &r);
         console_flush(&data->menu, x, y);
     }
     SDL_RenderPresent(app->renderer);

@@ -22,6 +22,7 @@ void console_create(rg_console *c,
     int render_h = c->height * c->tileset->tile_size;
     c->texture = SDL_CreateTexture(
       r, mode.format, SDL_TEXTUREACCESS_TARGET, render_w, render_h);
+    SDL_SetTextureBlendMode(c->texture, SDL_BLENDMODE_BLEND);
 }
 
 void console_destroy(rg_console *c)
