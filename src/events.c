@@ -1,6 +1,8 @@
 #include "events.h"
 
-void event_dispatch(SDL_Event *event, rg_action *action, SDL_Point* mouse_position)
+void event_dispatch(SDL_Event *event,
+                    rg_action *action,
+                    SDL_Point *mouse_position)
 {
     // Default value
     action->type = ACTION_NONE;
@@ -58,9 +60,12 @@ void event_dispatch(SDL_Event *event, rg_action *action, SDL_Point* mouse_positi
             action->dx = 1;
             action->dy = 1;
             break;
-         
-            case SDLK_g:
+
+        case SDLK_g:
             action->type = ACTION_PICKUP;
+            break;
+        case SDLK_i:
+            action->type = ACTION_SHOW_INVENTORY;
             break;
 
         case SDLK_ESCAPE:

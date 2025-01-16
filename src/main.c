@@ -33,7 +33,8 @@ typedef enum rg_game_state
 {
     ST_TURN_PLAYER,
     ST_TURN_ENEMY,
-    ST_TURN_PLAYER_DEAD
+    ST_TURN_PLAYER_DEAD,
+    ST_SHOW_INVENTORY,
 } rg_game_state;
 
 // typedef struct rg_item
@@ -72,12 +73,14 @@ typedef struct rg_game_state_data
     rg_terminal terminal;
     rg_console console;
     rg_console panel;
+    rg_console menu;
     rg_entity_array entities;
     rg_entity_id player;
     rg_map game_map;
     rg_fov_map fov_map;
     bool recompute_fov;
     rg_game_state game_state;
+    rg_game_state prev_state;
     rg_inventory inventory;
     rg_turn_logs logs;
     SDL_Point mouse_position;
@@ -127,6 +130,61 @@ void inventory_add_item(rg_inventory* inventory,
     turn_logs_push(logs, &entry);
 
     ARRAY_PUSH(inventory, item);
+}
+
+void menu_draw(rg_console* c,
+               const char* header,
+               int options_count,
+               const char* options[],
+               int width,
+               int* height)
+{
+    ASSERT_M(options_count <= 26);
+    size_t len = strlen(header);
+    int header_height = (int)ceil((double)len / (double)width);
+    *height = options_count + header_height;
+
+    console_print_txt(c, 0, 0, header, WHITE);
+    int y = header_height;
+    int letter_index = (char)'a';
+    for (int i = 0; i < options_count; i++)
+    {
+        const char* opt = options[i];
+        int x = 0;
+        console_print(c, x, y, '(', WHITE);
+        x++;
+        console_print(c, x, y, letter_index, WHITE);
+        x++;
+        console_print(c, x, y, ')', WHITE);
+        x++;
+        console_print_txt(c, x, y, opt, WHITE);
+
+        y++;
+        letter_index++;
+    }
+}
+
+void inventory_draw(rg_console* c,
+                    const char* header,
+                    rg_inventory* inventory,
+                    int width,
+                    int* height)
+{
+    if (inventory->len == 0)
+    {
+        const char* opt = "Inventory is empty.";
+        menu_draw(c, header, 1, &opt, width, height);
+    }
+    else
+    {
+        char** options = malloc(sizeof(char*) * inventory->len);
+        for (int i = 0; i < inventory->len; i++)
+            options[i] = strdup(inventory->data[i]->name);
+        menu_draw(c, header, (int)inventory->len, options, width, height);
+
+        for (int i = 0; i < inventory->len; i++) free(options[i]);
+        free(options);
+    }
 }
 
 float distance_between(rg_entity* a, rg_entity* b)
@@ -394,8 +452,19 @@ void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
 
     if (data->recompute_fov) game_recompute_fov(data);
 
-    if (action.type == ACTION_ESCAPE || action.type == ACTION_QUIT)
-        app->running = false;
+    if (action.type == ACTION_SHOW_INVENTORY)
+    {
+        data->prev_state = data->game_state;
+        data->game_state = ST_SHOW_INVENTORY;
+    }
+    if (action.type == ACTION_ESCAPE)
+    {
+        if (data->game_state == ST_SHOW_INVENTORY)
+            data->game_state = data->prev_state;
+        else
+            app->running = false;
+    }
+    if (action.type == ACTION_QUIT) app->running = false;
 
     if (data->game_state == ST_TURN_ENEMY)
     {
@@ -480,7 +549,8 @@ void draw(rg_app* app, rg_game_state_data* data)
     for (int i = 0; i < entities->len; i++)
     {
         const rg_entity* e = &entities->data[i];
-        if (fov_map_is_in_fov(fov_map, e->x, e->y) && e->visible_on_map) entity_draw(e, console);
+        if (fov_map_is_in_fov(fov_map, e->x, e->y) && e->visible_on_map)
+            entity_draw(e, console);
     }
     console_end(&data->console);
 
@@ -512,11 +582,34 @@ void draw(rg_app* app, rg_game_state_data* data)
     }
     console_end(&data->panel);
 
+    //-----Menu----------------
+    int menu_height;
+    int menu_width = 50;
+    if (data->game_state == ST_SHOW_INVENTORY)
+    {
+        console_begin(&data->menu);
+        console_clear(&data->menu, ((SDL_Color){ 0, 0, 0, 1 }));
+        const char* header =
+          "Press the key next to an item to use it, or Esc to cancel.";
+        inventory_draw(
+          &data->menu, header, &data->inventory, menu_width, &menu_height);
+        console_end(&data->menu);
+    }
+
     ///-----Screen/Window---------------
     SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 255);
     SDL_RenderClear(app->renderer);
     console_flush(&data->console, 0, 0);
     console_flush(&data->panel, 0, data->panel_y);
+
+    if (data->game_state == ST_SHOW_INVENTORY)
+    {
+        int x =
+          (int)((data->screen_width / (double)2) - (menu_width / (double)2));
+        int y =
+          (int)((data->screen_height / (double)2) - (menu_height / (double)2));
+        console_flush(&data->menu, x, y);
+    }
     SDL_RenderPresent(app->renderer);
 
     data->recompute_fov = false;
@@ -552,6 +645,7 @@ int main(int argc, char* argv[])
     data.fov_light_walls = true;
     data.fov_radius = 10;
     data.game_state = ST_TURN_PLAYER;
+    data.prev_state = ST_TURN_PLAYER;
 
     tileset_create(
       &data.tileset, app.renderer, "res/dejavu10x10_gs_tc.png", 32, 8);
@@ -574,7 +668,11 @@ int main(int argc, char* argv[])
                    data.screen_width,
                    data.panel_height,
                    &data.tileset);
-
+    console_create(&data.menu,
+                   app.renderer,
+                   data.screen_width,
+                   data.screen_height,
+                   &data.tileset);
     data.entities.capacity = data.max_monsters_per_room;
     data.entities.data =
       malloc(sizeof(*data.entities.data) * data.entities.capacity);
@@ -654,6 +752,7 @@ int main(int argc, char* argv[])
     turn_logs_destroy(&data.logs);
     map_destroy(&data.game_map);
     free(data.entities.data);
+    console_destroy(&data.menu);
     console_destroy(&data.console);
     console_destroy(&data.panel);
     terminal_destroy(&data.terminal);
