@@ -25,6 +25,7 @@ void map_create(rg_map *m,
                 int max_monsters_per_room,
                 int max_items_per_room,
                 rg_entity_array *entities,
+                rg_items *items,
                 rg_entity_id player)
 {
     memset(m, 0, sizeof(rg_map));
@@ -92,6 +93,7 @@ void map_create(rg_map *m,
                                &new_room,
                                entities,
                                max_monsters_per_room,
+                               items,
                                max_items_per_room);
         }
 
@@ -164,6 +166,7 @@ void map_place_entities(rg_map *m,
                         SDL_Rect *room,
                         rg_entity_array *entities,
                         int max_monsters_per_room,
+                        rg_items *items,
                         int max_items_per_room)
 {
     int num_monsters = RAND_INT(0, max_monsters_per_room);
@@ -202,7 +205,6 @@ void map_place_entities(rg_map *m,
                          .type = ENTITY_BASIC_MONSTER,
                          .fighter = fighter,
                          .render_order = RENDER_ORDER_ACTOR,
-                         .visible_on_map = true,
                        }));
         }
         else
@@ -219,7 +221,6 @@ void map_place_entities(rg_map *m,
                          .type = ENTITY_BASIC_MONSTER,
                          .fighter = fighter,
                          .render_order = RENDER_ORDER_ACTOR,
-                         .visible_on_map = true,
                        }));
         }
     }
@@ -246,16 +247,15 @@ void map_place_entities(rg_map *m,
 
         if (!valid) continue;
 
-        ARRAY_PUSH(entities,
-                   ((rg_entity){
+        ARRAY_PUSH(items,
+                   ((rg_item){
                      .x = x,
                      .y = y,
                      .ch = '!',
                      .color = VIOLET,
                      .name = "Healing Potion",
-                     .blocks = false,
-                     .type = ENTITY_ITEM,
-                     .render_order = RENDER_ORDER_ITEM,
+                     .type = ITEM_POTION_HEAL,
+                     .amount = 4,
                      .visible_on_map = true,
                    }));
     }

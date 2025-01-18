@@ -8,6 +8,7 @@
 
 #include "entity.h"
 #include "types.h"
+#include "inventory.h"
 
 typedef struct rg_tile
 {
@@ -39,6 +40,7 @@ void map_create(rg_map *m,
                 int max_monsters_per_room,
                 int max_items_per_room,
                 rg_entity_array *entities,
+                rg_items* items,
                 rg_entity_id player);
 void map_destroy(rg_map *m);
 
@@ -53,6 +55,7 @@ void map_place_entities(rg_map *m,
                         SDL_Rect *room,
                         rg_entity_array *entities,
                         int max_monsters_per_room,
+                        rg_items* items,
                         int max_items_per_room);
 
 void room_get_center(SDL_Rect *r, int *x, int *y);

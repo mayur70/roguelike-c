@@ -20,6 +20,7 @@
 #include "events.h"
 #include "fov.h"
 #include "game_map.h"
+#include "gameplay_state.h"
 #include "panic.h"
 #include "terminal.h"
 #include "tileset.h"
@@ -29,283 +30,9 @@
 #define DESIRED_FPS 20.0
 #define DESIRED_FRAME_RATE ((1.0 / DESIRED_FPS) * 1000.0)
 
-typedef enum rg_game_state
-{
-    ST_TURN_PLAYER,
-    ST_TURN_ENEMY,
-    ST_TURN_PLAYER_DEAD,
-    ST_SHOW_INVENTORY,
-} rg_game_state;
-
-// typedef struct rg_item
-//{
-//     const char* name;
-// } rg_item;
-
-typedef rg_entity* rg_item;
-typedef struct rg_inventory
-{
-    size_t capacity;
-    size_t len;
-    rg_item* data;
-} rg_inventory;
-
-typedef struct rg_game_state_data
-{
-    int screen_width;
-    int screen_height;
-    int bar_width;
-    int panel_height;
-    int panel_y;
-    int message_x;
-    int message_width;
-    int message_height;
-    int map_width;
-    int map_height;
-    int room_max_size;
-    int room_min_size;
-    int max_rooms;
-    int max_monsters_per_room;
-    int max_items_per_room;
-    bool fov_light_walls;
-    int fov_radius;
-    rg_tileset tileset;
-    rg_terminal terminal;
-    rg_console console;
-    rg_console panel;
-    rg_console menu;
-    rg_entity_array entities;
-    rg_entity_id player;
-    rg_map game_map;
-    rg_fov_map fov_map;
-    bool recompute_fov;
-    rg_game_state game_state;
-    rg_game_state prev_state;
-    rg_inventory inventory;
-    rg_turn_logs logs;
-    SDL_Point mouse_position;
-} rg_game_state_data;
-
-void inventory_create(rg_inventory* i, size_t capacity)
-{
-    memset(i, 0, sizeof(rg_inventory));
-    i->capacity = capacity;
-    i->len = 0;
-    i->data = malloc(sizeof(rg_inventory) * i->capacity);
-    ASSERT_M(i->data != NULL);
-}
-
-void inventory_destroy(rg_inventory* i)
-{
-    if (i == NULL) return;
-    if (i->data != NULL) free(i->data);
-}
-
-void inventory_add_item(rg_inventory* inventory,
-                        rg_entity* item,
-                        rg_turn_logs* logs)
-{
-    if (inventory->len >= inventory->capacity)
-    {
-        const char* fmt = "You cannot carry any more, your inventory is full";
-
-        int len = snprintf(NULL, 0, fmt);
-        char* buf = malloc(sizeof(char) * (len + 1));
-        snprintf(buf, len, fmt);
-        rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
-                                    .text = buf,
-                                    .color = YELLOW };
-        turn_logs_push(logs, &entry);
-
-        return;
-    }
-
-    const char* fmt = "You pick up the %s!";
-    int len = snprintf(NULL, 0, fmt, item->name);
-    char* buf = malloc(sizeof(char) * (len + 1));
-    snprintf(buf, len, fmt, item->name);
-    rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
-                                .text = buf,
-                                .color = BLUE };
-    turn_logs_push(logs, &entry);
-
-    ARRAY_PUSH(inventory, item);
-}
-
-void menu_draw(rg_console* c,
-               const char* header,
-               int options_count,
-               const char* options[],
-               int width,
-               int* height)
-{
-    ASSERT_M(options_count <= 26);
-    size_t len = strlen(header);
-    int header_height = (int)ceil((double)len / (double)width);
-    *height = options_count + header_height;
-
-    int y = 0;
-    {
-        char* buf = malloc(sizeof(char) * width + 1);
-        size_t len_remaining = len;
-        for (int i = 0; i < header_height; i++)
-        {
-            // TODO: Split by word?
-            size_t sz;
-            if (len_remaining > width) sz = width;
-            else
-                sz = len_remaining;
-            memcpy(buf, header + (width * i), sz);
-            buf[sz] = '\0';
-            console_print_txt(c, 0, y, buf, WHITE);
-            y++;
-            len_remaining -= sz;
-        }
-        free(buf);
-    }
-    int letter_index = (char)'a';
-    for (int i = 0; i < options_count; i++)
-    {
-        const char* opt = options[i];
-        int x = 0;
-        console_print(c, x, y, '(', WHITE);
-        x++;
-        console_print(c, x, y, letter_index, WHITE);
-        x++;
-        console_print(c, x, y, ')', WHITE);
-        x++;
-        console_print_txt(c, x, y, opt, WHITE);
-
-        y++;
-        letter_index++;
-    }
-}
-
-void inventory_draw(rg_console* c,
-                    const char* header,
-                    rg_inventory* inventory,
-                    int width,
-                    int* height)
-{
-    if (inventory->len == 0)
-    {
-        const char* opt = "Inventory is empty.";
-        menu_draw(c, header, 1, &opt, width, height);
-    }
-    else
-    {
-        char** options = malloc(sizeof(char*) * inventory->len);
-        for (int i = 0; i < inventory->len; i++)
-            options[i] = strdup(inventory->data[i]->name);
-        menu_draw(c, header, (int)inventory->len, options, width, height);
-
-        for (int i = 0; i < inventory->len; i++) free(options[i]);
-        free(options);
-    }
-}
-
-float distance_between(rg_entity* a, rg_entity* b)
-{
-    int dx = b->x - a->x;
-    int dy = b->y - a->y;
-    return (float)sqrt(dx * dx + dy * dy);
-}
-
 int entity_sort_by_render_order(const rg_entity* lhs, const rg_entity* rhs)
 {
     return lhs->render_order - rhs->render_order;
-}
-
-void entity_move_towards(rg_entity* e,
-                         int x,
-                         int y,
-                         rg_map* map,
-                         rg_entity_array* entities)
-{
-    int dx = x - e->x;
-    int dy = y - e->y;
-    float distance = (float)sqrt(dx * dx + dy * dy);
-    dx = (int)floor(dx / distance);
-    dy = (int)floor(dy / distance);
-
-    if (!map_is_blocked(map, e->x + dx, e->y + dy))
-    {
-        rg_entity* other = NULL;
-        entity_get_at_loc(entities, e->x + dx, e->y + dy, &other);
-        if (other == NULL) entity_move(e, dx, dy);
-    }
-}
-
-void entity_move_astar(rg_entity* e,
-                       rg_entity* target,
-                       rg_map* game_map,
-                       rg_entity_array* entities)
-{
-    rg_fov_map map;
-    fov_map_create(&map, game_map->width, game_map->height);
-    for (int y = 0; y < game_map->height; y++)
-    {
-        for (int x = 0; x < game_map->width; x++)
-        {
-            rg_tile* t = map_get_tile(game_map, x, y);
-            fov_map_set_props(&map, x, y, !t->block_sight, !t->blocked);
-        }
-    }
-    for (int i = 0; i < entities->len; i++)
-    {
-        rg_entity* t = &entities->data[i];
-        if (t->blocks && t != e && t != target)
-        {
-            fov_map_set_props(&map, t->x, t->y, true, false);
-        }
-    }
-
-    astar_path* path = astar_path_new_using_map(&map, (float)1.41);
-    astar_path_compute(path, e->x, e->y, target->x, target->y);
-
-    if (!astar_path_is_empty(path) && astar_path_size(path) < 25)
-    {
-        int dx, dy;
-        bool res = astar_path_walk(path, &dx, &dy, true);
-        if (res)
-        {
-            e->x = dx;
-            e->y = dy;
-        }
-    }
-    else
-    {
-        entity_move_towards(e, target->x, target->y, game_map, entities);
-    }
-    astar_path_delete(path);
-}
-
-void basic_monster_update(rg_entity* e,
-                          rg_entity* target,
-                          rg_fov_map* fov_map,
-                          rg_map* game_map,
-                          rg_entity_array* entities,
-                          rg_turn_logs* logs,
-                          rg_entity** dead_entity)
-{
-    ASSERT_M(e != NULL);
-    ASSERT_M(target != NULL);
-    ASSERT_M(fov_map != NULL);
-    ASSERT_M(game_map != NULL);
-    ASSERT_M(entities != NULL);
-    ASSERT_M(logs != NULL);
-    ASSERT_M(dead_entity != NULL);
-    *dead_entity = NULL;
-    if (fov_map_is_in_fov(fov_map, e->x, e->y))
-    {
-        int distance = (int)distance_between(e, target);
-        if (distance >= 2)
-        {
-            entity_move_astar(e, target, game_map, entities);
-        }
-        else if (target->fighter.hp > 0)
-            entity_attack(e, target, logs, dead_entity);
-    }
 }
 
 void game_recompute_fov(rg_game_state_data* data)
@@ -373,6 +100,32 @@ char* get_names_under_mouse(rg_game_state_data* data)
             }
         }
     }
+    for (int i = 0; i < data->items.len; i++)
+    {
+        const rg_item* e = &data->items.data[i];
+        rg_fov_map* fov_map = &data->fov_map;
+        if (e->x == x && e->y == y && e->visible_on_map && fov_map_is_in_fov(fov_map, x, y))
+        {
+            if (buf == NULL)
+            {
+                buf_len = strlen(e->name);
+                buf = strdup(e->name);
+            }
+            else
+            {
+                size_t sz = strlen(e->name);
+                size_t newsize = sizeof(char) * (buf_len + sz + 3);
+                buf = realloc(buf, newsize);
+                ASSERT_M(buf != NULL);
+                buf[buf_len] = ',';
+                buf[buf_len + 1] = ' ';
+                buf_len += 2;
+                memcpy(buf + buf_len, e->name, sz);
+                buf_len += sz;
+                buf[buf_len] = '\0';
+            }
+        }
+    }
     return buf;
 }
 
@@ -381,143 +134,46 @@ void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
     rg_map* game_map = &data->game_map;
     rg_fov_map* fov_map = &data->fov_map;
     rg_action action;
-    event_dispatch(event, &action, &data->mouse_position);
-    int wx, wy;
-    SDL_GetMouseState(&wx, &wy);
-    float lx, ly;
-    SDL_RenderWindowToLogical(app->renderer, wx, wy, &lx, &ly);
+    event_dispatch(app,
+                   event,
+                   &action,
+                   &data->mouse_position,
+                   data->tileset.tile_size,
+                   data->tileset.tile_size);
 
-    int rw, rh;
-    SDL_RenderGetLogicalSize(app->renderer, &rw, &rh);
-    if (lx < 0) data->mouse_position.x = 0;
-    else if (lx > rw)
-        data->mouse_position.x = rw;
-    else
-        data->mouse_position.x = (int)lx;
-    if (ly < 0) data->mouse_position.y = 0;
-    else if (ly > rh)
-        data->mouse_position.y = rh;
-    else
-        data->mouse_position.y = (int)ly;
-
-    data->mouse_position.x = data->mouse_position.x / data->tileset.tile_size;
-    data->mouse_position.y = data->mouse_position.y / data->tileset.tile_size;
-
-    if (action.type == ACTION_NONE) return;
-
-    if (action.type == ACTION_MOVEMENT && data->game_state == ST_TURN_PLAYER)
+    if (action.type == ACTION_QUIT)
     {
-        int destination_x = data->entities.data[data->player].x + action.dx;
-        int destination_y = data->entities.data[data->player].y + action.dy;
-        if (!map_is_blocked(game_map, destination_x, destination_y))
-        {
-            rg_entity* target = NULL;
-            entity_get_at_loc(
-              &data->entities, destination_x, destination_y, &target);
-            rg_entity* player = &data->entities.data[data->player];
-            if (target == NULL)
-            {
-                entity_move(player, action.dx, action.dy);
-                data->recompute_fov = true;
-            }
-            else
-            {
-                rg_entity* dead_entity;
-                entity_attack(player, target, &data->logs, &dead_entity);
-                if (dead_entity != NULL)
-                {
-                    entity_kill(dead_entity, &data->logs);
-                    if (dead_entity == player)
-                    {
-                        data->game_state = ST_TURN_PLAYER_DEAD;
-                    }
-                }
-            }
-            if (data->game_state != ST_TURN_PLAYER_DEAD)
-                data->game_state = ST_TURN_ENEMY;
-        }
+        // App Quit signal
+        app->running = false;
+        return;
     }
-    else if (action.type == ACTION_PICKUP && data->game_state == ST_TURN_PLAYER)
+
+    switch (data->game_state)
     {
-        rg_entity* player = &data->entities.data[data->player];
-        bool status = false;
-        for (int i = 0; i < data->entities.len; i++)
-        {
-            rg_entity* e = &data->entities.data[i];
-            if (e->type == ENTITY_ITEM && e->x == player->x &&
-                e->y == player->y)
-            {
-                inventory_add_item(&data->inventory, e, &data->logs);
-                status = true;
-                e->visible_on_map = false;
-                data->game_state = ST_TURN_ENEMY;
-                break;
-            }
-        }
-        if (!status)
-        {
-            const char* fmt = "There is nothing here to pickup";
-            int len = snprintf(NULL, 0, fmt);
-            char* buf = malloc(sizeof(char) * (len + 1));
-            snprintf(buf, len, fmt);
-            rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
-                                        .text = buf,
-                                        .color = YELLOW };
-            turn_logs_push(&data->logs, &entry);
-        }
+    case ST_TURN_PLAYER:
+        state_player_turn(event, &action, data);
+        break;
+    case ST_SHOW_INVENTORY:
+        state_inventory_turn(event, &action, data);
+        break;
+    case ST_TURN_ENEMY:
+        state_enemy_turn(event, &action, data);
+        break;
+    case ST_TURN_PLAYER_DEAD:
+        state_player_dead_turn(event, &action, data);
+        break;
+    default:
+        break;
+    }
+
+    if (action.type == ACTION_QUIT)
+    {
+        // App Quit signal
+        app->running = false;
+        return;
     }
 
     if (data->recompute_fov) game_recompute_fov(data);
-
-    if (action.type == ACTION_SHOW_INVENTORY)
-    {
-        data->prev_state = data->game_state;
-        data->game_state = ST_SHOW_INVENTORY;
-    }
-    if (action.type == ACTION_ESCAPE)
-    {
-        if (data->game_state == ST_SHOW_INVENTORY)
-            data->game_state = data->prev_state;
-        else
-            app->running = false;
-    }
-    if (action.type == ACTION_QUIT) app->running = false;
-
-    if (data->game_state == ST_TURN_ENEMY)
-    {
-        for (int i = 0; i < data->entities.len; i++)
-        {
-            if (i == data->player) continue;
-
-            rg_entity* e = &data->entities.data[i];
-            if (e->fighter.hp <= 0) continue;
-
-            rg_entity* player = &data->entities.data[data->player];
-            if (e->type == ENTITY_BASIC_MONSTER)
-            {
-                rg_entity* dead_entity;
-                basic_monster_update(e,
-                                     player,
-                                     &data->fov_map,
-                                     &data->game_map,
-                                     &data->entities,
-                                     &data->logs,
-                                     &dead_entity);
-
-                if (dead_entity != NULL)
-                {
-                    entity_kill(dead_entity, &data->logs);
-                    if (dead_entity == player)
-                    {
-                        data->game_state = ST_TURN_PLAYER_DEAD;
-                    }
-                }
-                if (data->game_state == ST_TURN_PLAYER_DEAD) break;
-            }
-        }
-        if (data->game_state != ST_TURN_PLAYER_DEAD)
-            data->game_state = ST_TURN_PLAYER;
-    }
 }
 
 void draw(rg_app* app, rg_game_state_data* data)
@@ -526,6 +182,7 @@ void draw(rg_app* app, rg_game_state_data* data)
     rg_fov_map* fov_map = &data->fov_map;
     rg_console* console = &data->console;
     rg_entity_array* entities = &data->entities;
+    rg_items* items = &data->items;
 
     qsort(entities->data,
           entities->len,
@@ -563,11 +220,20 @@ void draw(rg_app* app, rg_game_state_data* data)
             }
         }
     }
+
+    for (int i = 0; i < items->len; i++)
+    {
+        const rg_item* e = &items->data[i];
+        if (!e->visible_on_map) continue;
+        if (fov_map_is_in_fov(fov_map, e->x, e->y))
+            console_print(console, e->x, e->y, e->ch, e->color);
+    }
+
     for (int i = 0; i < entities->len; i++)
     {
         const rg_entity* e = &entities->data[i];
-        if (fov_map_is_in_fov(fov_map, e->x, e->y) && e->visible_on_map)
-            entity_draw(e, console);
+        if (fov_map_is_in_fov(fov_map, e->x, e->y))
+            console_print(console, e->x, e->y, e->ch, e->color);
     }
     console_end(&data->console);
 
@@ -608,8 +274,12 @@ void draw(rg_app* app, rg_game_state_data* data)
         console_clear(&data->menu, ((SDL_Color){ 0, 0, 0, 0 }));
         const char* header =
           "Press the key next to an item to use it, or Esc to cancel.";
-        inventory_draw(
-          &data->menu, header, &data->inventory, menu_width, &menu_height);
+        inventory_draw(&data->menu,
+                       header,
+                       &data->items,
+                       &data->inventory,
+                       menu_width,
+                       &menu_height);
         console_end(&data->menu);
     }
 
@@ -704,6 +374,10 @@ int main(int argc, char* argv[])
       malloc(sizeof(*data.entities.data) * data.entities.capacity);
     ASSERT_M(data.entities.data != NULL);
     data.entities.len = 0;
+    data.items.capacity = data.max_items_per_room;
+    data.items.data = malloc(sizeof(*data.items.data) * data.items.capacity);
+    ASSERT_M(data.items.data != NULL);
+    data.items.len = 0;
     rg_fighter fighter = { .hp = 30, .defence = 2, .power = 5, .max_hp = 30 };
     ARRAY_PUSH(&data.entities,
                ((rg_entity){
@@ -716,7 +390,6 @@ int main(int argc, char* argv[])
                  .type = ENTITY_PLAYER,
                  .fighter = fighter,
                  .render_order = RENDER_ORDER_ACTOR,
-                 .visible_on_map = true,
                }));
     data.player = data.entities.len - 1;
 
@@ -733,6 +406,7 @@ int main(int argc, char* argv[])
                data.max_monsters_per_room,
                data.max_items_per_room,
                &data.entities,
+               &data.items,
                data.player);
 
     fov_map_create(&data.fov_map, data.map_width, data.map_height);
@@ -749,6 +423,8 @@ int main(int argc, char* argv[])
     // first draw before waitevent
     game_recompute_fov(&data);
     SDL_Event event = { 0 };
+    data.mouse_position.x = 0;
+    data.mouse_position.y = 0;
     update(&app, &event, &data);
     draw(&app, &data);
 

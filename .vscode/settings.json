@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "tileset.h": "c",
-        "types.h": "c"
+        "types.h": "c",
+        "xutility": "c",
+        "cstdio": "c"
     }
 }

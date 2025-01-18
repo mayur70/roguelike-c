@@ -2,8 +2,9 @@
 #define ARRAY_H
 
 #include <assert.h>
-#include <stdlib.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
 
 #include "types.h"
 

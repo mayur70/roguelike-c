@@ -7,7 +7,7 @@ add_subdirectory(vendor/SDL_image EXCLUDE_FROM_ALL)
 
 add_executable(
     ${PROJECT_NAME}
-    # WIN32
+    WIN32
     src/main.c
     src/panic.c
     src/tileset.c
@@ -20,6 +20,9 @@ add_executable(
     src/fov.c
     src/astar.c 
     src/turn_log.c
+    src/gameplay_state.c
+    src/inventory.c
+    src/items.c
 )
 
 # target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address)

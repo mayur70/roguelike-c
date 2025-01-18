@@ -16,13 +16,11 @@ typedef enum rg_entity_type
 {
     ENTITY_PLAYER,
     ENTITY_BASIC_MONSTER,
-    ENTITY_ITEM,
 } rg_entity_type;
 
 typedef enum rg_render_order
 {
     RENDER_ORDER_CORPSE,
-    RENDER_ORDER_ITEM,
     RENDER_ORDER_ACTOR
 } rg_render_order;
 
@@ -44,7 +42,6 @@ typedef struct rg_entity
     rg_entity_type type;
     rg_fighter fighter;
     rg_render_order render_order;
-    bool visible_on_map;
 } rg_entity;
 
 typedef struct rg_entity_array
