@@ -5,13 +5,13 @@
 
 #include "console.h"
 #include "entity.h"
+#include "events.h"
 #include "fov.h"
 #include "game_map.h"
+#include "inventory.h"
 #include "terminal.h"
 #include "tileset.h"
 #include "turn_log.h"
-#include "events.h"
-#include "inventory.h"
 
 typedef enum rg_game_state
 {
@@ -19,6 +19,7 @@ typedef enum rg_game_state
     ST_TURN_ENEMY,
     ST_TURN_PLAYER_DEAD,
     ST_SHOW_INVENTORY,
+    ST_DROP_INVENTORY,
 } rg_game_state;
 
 typedef struct rg_game_state_data
@@ -58,9 +59,21 @@ typedef struct rg_game_state_data
     SDL_Point mouse_position;
 } rg_game_state_data;
 
-void state_player_turn(const SDL_Event* event, rg_action* action, rg_game_state_data* data);
-void state_player_dead_turn(const SDL_Event* event, rg_action* action, rg_game_state_data* data);
-void state_enemy_turn(const SDL_Event* event, rg_action* action, rg_game_state_data* data);
-void state_inventory_turn(const SDL_Event* event, rg_action* action, rg_game_state_data* data);
+void state_player_turn(const SDL_Event* event,
+                       rg_action* action,
+                       rg_game_state_data* data);
+void state_player_dead_turn(const SDL_Event* event,
+                            rg_action* action,
+                            rg_game_state_data* data);
+void state_enemy_turn(const SDL_Event* event,
+                      rg_action* action,
+                      rg_game_state_data* data);
+void state_inventory_turn(const SDL_Event* event,
+                          rg_action* action,
+                          rg_game_state_data* data);
+
+void state_inventory_drop_turn(const SDL_Event* event,
+                               rg_action* action,
+                               rg_game_state_data* data);
 
 #endif

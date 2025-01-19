@@ -104,7 +104,8 @@ char* get_names_under_mouse(rg_game_state_data* data)
     {
         const rg_item* e = &data->items.data[i];
         rg_fov_map* fov_map = &data->fov_map;
-        if (e->x == x && e->y == y && e->visible_on_map && fov_map_is_in_fov(fov_map, x, y))
+        if (e->x == x && e->y == y && e->visible_on_map &&
+            fov_map_is_in_fov(fov_map, x, y))
         {
             if (buf == NULL)
             {
@@ -155,6 +156,9 @@ void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
         break;
     case ST_SHOW_INVENTORY:
         state_inventory_turn(event, &action, data);
+        break;
+    case ST_DROP_INVENTORY:
+        state_inventory_drop_turn(event, &action, data);
         break;
     case ST_TURN_ENEMY:
         state_enemy_turn(event, &action, data);
@@ -282,6 +286,20 @@ void draw(rg_app* app, rg_game_state_data* data)
                        &menu_height);
         console_end(&data->menu);
     }
+    else if (data->game_state == ST_DROP_INVENTORY)
+    {
+        console_begin(&data->menu);
+        console_clear(&data->menu, ((SDL_Color){ 0, 0, 0, 0 }));
+        const char* header =
+          "Press the key next to an item to drop it, or Esc to cancel.";
+        inventory_draw(&data->menu,
+                       header,
+                       &data->items,
+                       &data->inventory,
+                       menu_width,
+                       &menu_height);
+        console_end(&data->menu);
+    }
 
     ///-----Screen/Window---------------
     SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 255);
@@ -289,9 +307,8 @@ void draw(rg_app* app, rg_game_state_data* data)
     console_flush(&data->console, 0, 0);
     console_flush(&data->panel, 0, data->panel_y);
 
-    if (data->game_state == ST_SHOW_INVENTORY)
+    if (data->game_state == ST_SHOW_INVENTORY || data->game_state == ST_DROP_INVENTORY)
     {
-
         int x =
           (int)((data->screen_width / (double)2) - (menu_width / (double)2));
         int y =

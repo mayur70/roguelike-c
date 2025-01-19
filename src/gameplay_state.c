@@ -290,14 +290,15 @@ void handle_player_input(const SDL_Event* event,
             action->dx = 1;
             action->dy = 1;
             break;
-
         case SDLK_g:
             action->type = ACTION_PICKUP;
             break;
         case SDLK_i:
             action->type = ACTION_SHOW_INVENTORY;
             break;
-
+        case SDLK_d:
+            action->type = ACTION_DROP_INVENTORY;
+            break;
         case SDLK_ESCAPE:
             action->type = ACTION_ESCAPE;
             break;
@@ -346,8 +347,47 @@ void state_player_turn(const SDL_Event* event,
     case ACTION_SHOW_INVENTORY:
         state_inventory_turn(event, action, data);
         break;
+    case ACTION_DROP_INVENTORY:
+        state_inventory_drop_turn(event, action, data);
+        break;
     case ACTION_ESCAPE:
         action->type = ACTION_QUIT;
+        break;
+    }
+}
+
+void state_inventory_drop_turn(const SDL_Event* event,
+                               rg_action* action,
+                               rg_game_state_data* data)
+{
+    if (data->game_state != ST_DROP_INVENTORY)
+        data->prev_state = data->game_state;
+    data->game_state = ST_DROP_INVENTORY;
+    handle_inventory_input(event, action, data);
+    switch (action->type)
+    {
+    case ACTION_INVENTORY_SELECT:
+        if (data->prev_state == ST_TURN_PLAYER_DEAD) return;
+        if (data->inventory.len == 0) return;
+        if (data->inventory.len < action->index) return;
+        ASSERT_M(action->index >= 0);
+        const size_t idx = data->inventory.data[action->index];
+        rg_item* item = &data->items.data[idx];
+
+        {
+            const char* fmt = "You dropped the %s";
+            int len = snprintf(NULL, 0, fmt, item->name);
+            char* buf = malloc(sizeof(char) * (len + 1));
+            snprintf(buf, len + 1, fmt, item->name);
+            rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
+                                        .text = buf,
+                                        .color = YELLOW };
+            turn_logs_push(&data->logs, &entry);
+        }
+        inventory_remove_item(&data->inventory, &data->items, item);
+        break;
+    case ACTION_ESCAPE:
+        data->game_state = data->prev_state;
         break;
     }
 }

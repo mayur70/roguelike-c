@@ -14,6 +14,7 @@ typedef enum rg_action_type
     ACTION_PICKUP,
     ACTION_SHOW_INVENTORY,
     ACTION_INVENTORY_SELECT,
+    ACTION_DROP_INVENTORY,
 } rg_action_type;
 
 typedef struct rg_action
