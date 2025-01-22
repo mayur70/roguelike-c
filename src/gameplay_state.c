@@ -8,12 +8,6 @@
 #include "astar.h"
 #include "color.h"
 
-float distance_between(rg_entity* a, rg_entity* b)
-{
-    int dx = b->x - a->x;
-    int dy = b->y - a->y;
-    return (float)sqrt(dx * dx + dy * dy);
-}
 
 void entity_move_towards(rg_entity* e,
                          int x,
@@ -97,7 +91,7 @@ void basic_monster_update(rg_entity* e,
     *dead_entity = NULL;
     if (fov_map_is_in_fov(fov_map, e->x, e->y))
     {
-        int distance = (int)distance_between(e, target);
+        int distance = (int)entity_get_distance(e, target);
         if (distance >= 2)
         {
             entity_move_astar(e, target, game_map, entities);
@@ -413,7 +407,7 @@ void state_inventory_turn(const SDL_Event* event,
         rg_item* item = &data->items.data[idx];
         rg_entity* player = &data->entities.data[data->player];
         bool consumed;
-        item_use(item, player, NULL, &data->logs, &consumed);
+        item_use(item, player, data, &data->logs, &consumed);
         if (consumed)
             inventory_remove_item(&data->inventory, &data->items, item);
         break;

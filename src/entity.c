@@ -135,3 +135,10 @@ void entity_kill(rg_entity* e, rg_turn_logs* logs)
         turn_logs_push(logs, &entry);
     }
 }
+
+float entity_get_distance(rg_entity* a, rg_entity* b)
+{
+    int dx = b->x - a->x;
+    int dy = b->y - a->y;
+    return (float)sqrt(dx * dx + dy * dy);
+}

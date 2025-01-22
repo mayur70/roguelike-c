@@ -6,12 +6,12 @@
 #include "entity.h"
 #include "turn_log.h"
 
-
 #define MAX_ITEM_NAME 50
 
 typedef enum rg_item_type
 {
-    ITEM_POTION_HEAL
+    ITEM_POTION_HEAL,
+    ITEM_LIGHTNING,
 } rg_item_type;
 
 typedef struct rg_item
@@ -24,7 +24,15 @@ typedef struct rg_item
     rg_item_type type;
     union
     {
-        int amount;
+        struct
+        {
+            int amount;
+        } heal;
+        struct
+        {
+            int damage;
+            int maximum_range;
+        } lightning;
     };
 } rg_item;
 
@@ -35,6 +43,10 @@ typedef struct rg_items
     rg_item* data;
 } rg_items;
 
-void item_use(rg_item* item, rg_entity* target_entity, void* data, rg_turn_logs* logs, bool* is_consumed);
+void item_use(rg_item* item,
+              rg_entity* target_entity,
+              void* data,
+              rg_turn_logs* logs,
+              bool* is_consumed);
 
 #endif

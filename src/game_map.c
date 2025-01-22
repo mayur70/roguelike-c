@@ -247,17 +247,38 @@ void map_place_entities(rg_map *m,
 
         if (!valid) continue;
 
-        ARRAY_PUSH(items,
-                   ((rg_item){
-                     .x = x,
-                     .y = y,
-                     .ch = '!',
-                     .color = VIOLET,
-                     .name = "Healing Potion",
-                     .type = ITEM_POTION_HEAL,
-                     .amount = 4,
-                     .visible_on_map = true,
-                   }));
+        int item_chance = RAND_INT(0, 100);
+        if (item_chance < 70)
+        {
+            ARRAY_PUSH(items,
+                       ((rg_item){
+                         .x = x,
+                         .y = y,
+                         .ch = '!',
+                         .color = VIOLET,
+                         .name = "Healing Potion",
+                         .type = ITEM_POTION_HEAL,
+                         .heal = { .amount = 4 },
+                         .visible_on_map = true,
+                       }));
+        }
+        else
+        {
+            ARRAY_PUSH(items,
+                       ((rg_item){
+                         .x = x,
+                         .y = y,
+                         .ch = '#',
+                         .color = YELLOW,
+                         .name = "Lightning Scroll",
+                         .type = ITEM_LIGHTNING,
+                         .lightning = {
+                             .damage = 20,
+                             .maximum_range = 4,
+                             },
+                         .visible_on_map = true,
+                       }));
+        }
     }
 }
 
