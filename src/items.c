@@ -105,12 +105,79 @@ void cast_lightning(rg_item* item,
     }
 }
 
+void cast_fireball(rg_item* item,
+                   rg_game_state_data* data,
+                   rg_turn_logs* logs,
+                   bool* is_consumed)
+{
+    *is_consumed = false;
+
+    rg_entity_array* entities = &data->entities;
+    rg_fov_map* fov_map = &data->fov_map;
+    int damage = item->fireball.damage;
+    int radius = item->fireball.radius;
+    int target_x = data->target_x;
+    int target_y = data->target_y;
+
+    if (!fov_map_is_in_fov(fov_map, target_x, target_y))
+    {
+        const char* fmt =
+          "You cannot target a tile outside your field of view.";
+        int len = snprintf(NULL, 0, fmt);
+        char* buf = malloc(sizeof(char) * (len + 1));
+        snprintf(buf, len, fmt);
+        rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
+                                    .text = buf,
+                                    .color = YELLOW };
+        turn_logs_push(logs, &entry);
+        return;
+    }
+
+    *is_consumed = true;
+    {
+        const char* fmt =
+          "The fireball explodes, burning everything within %d tiles!";
+        int len = snprintf(NULL, 0, fmt, radius);
+        char* buf = malloc(sizeof(char) * (len + 1));
+        snprintf(buf, len, fmt, radius);
+        rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
+                                    .text = buf,
+                                    .color = ORANGE };
+        turn_logs_push(logs, &entry);
+    }
+
+    for (int i = 0; i < entities->len; i++)
+    {
+        rg_entity* e = &entities->data[i];
+
+        if (e->ch == '%') continue; // Dead entity
+        if (entity_distance_to(e, target_x, target_y) <= radius)
+        {
+            const char* fmt = "The %s gets burned for %d hit points.";
+            int len = snprintf(NULL, 0, fmt, e->name, damage);
+            char* buf = malloc(sizeof(char) * (len + 1));
+            snprintf(buf, len, fmt, e->name, damage);
+            rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
+                                        .text = buf,
+                                        .color = ORANGE };
+            turn_logs_push(logs, &entry);
+            bool is_dead;
+            entity_take_damage(e, damage, logs, &is_dead);
+            if (is_dead)
+            {
+                entity_kill(e, logs);
+            }
+        }
+    }
+}
+
 void item_use(rg_item* item,
               rg_entity* target_entity,
               void* data,
               rg_turn_logs* logs,
               bool* is_consumed)
 {
+    *is_consumed = false;
     switch (item->type)
     {
     case ITEM_POTION_HEAL:
@@ -119,5 +186,30 @@ void item_use(rg_item* item,
     case ITEM_LIGHTNING:
         cast_lightning(item, data, logs, is_consumed);
         break;
+    case ITEM_FIRE_BALL:
+    {
+        rg_game_state_data* state = data;
+        if (state->target_selected)
+        {
+            cast_fireball(item, state, logs, is_consumed);
+            state->target_selected = false;
+            state->targeting_item = NULL;
+        }
+        else
+        {
+            state->targeting_item = item;
+            state->prev_state = ST_TURN_PLAYER;
+            state->game_state = ST_TARGETING;
+            state->target_x = -1;
+            state->target_y = -1;
+
+            char* buf = strdup(item->fireball.targeting_msg);
+            rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
+                                        .text = buf,
+                                        .color = WHITE };
+            turn_logs_push(logs, &entry);
+        }
+    }
+    break;
     }
 }

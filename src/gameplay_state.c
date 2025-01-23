@@ -8,7 +8,6 @@
 #include "astar.h"
 #include "color.h"
 
-
 void entity_move_towards(rg_entity* e,
                          int x,
                          int y,
@@ -324,6 +323,40 @@ void handle_player_dead_input(const SDL_Event* event,
     }
 }
 
+void handle_targeting_input(const SDL_Event* event,
+                            rg_action* action,
+                            rg_game_state_data* data)
+{
+    Uint32 btn = SDL_GetMouseState(NULL, NULL);
+    if ((btn & SDL_BUTTON_LMASK) != 0)
+    {
+        data->target_x = data->mouse_position.x;
+        data->target_y = data->mouse_position.y;
+        action->type = ACTION_TARGET_SELECTED;
+        data->target_selected = true;
+        return;
+    }
+    else if ((btn & SDL_BUTTON_RMASK) != 0)
+    {
+        action->type = ACTION_ESCAPE;
+        data->target_selected = false;
+        return;
+    }
+    switch (event->type)
+    {
+    case SDL_KEYDOWN:
+    {
+        switch (event->key.keysym.sym)
+        {
+        case SDLK_ESCAPE:
+            action->type = ACTION_ESCAPE;
+            break;
+        }
+        break;
+    }
+    }
+}
+
 void state_player_turn(const SDL_Event* event,
                        rg_action* action,
                        rg_game_state_data* data)
@@ -405,11 +438,14 @@ void state_inventory_turn(const SDL_Event* event,
         ASSERT_M(action->index >= 0);
         const size_t idx = data->inventory.data[action->index];
         rg_item* item = &data->items.data[idx];
-        rg_entity* player = &data->entities.data[data->player];
-        bool consumed;
-        item_use(item, player, data, &data->logs, &consumed);
-        if (consumed)
-            inventory_remove_item(&data->inventory, &data->items, item);
+
+        {
+            rg_entity* player = &data->entities.data[data->player];
+            bool consumed;
+            item_use(item, player, data, &data->logs, &consumed);
+            if (consumed)
+                inventory_remove_item(&data->inventory, &data->items, item);
+        }
         break;
     case ACTION_ESCAPE:
         data->game_state = data->prev_state;
@@ -430,6 +466,30 @@ void state_player_dead_turn(const SDL_Event* event,
         break;
     case ACTION_ESCAPE:
         action->type = ACTION_QUIT;
+        break;
+    }
+}
+
+void state_targeting_turn(const SDL_Event* event,
+                          rg_action* action,
+                          rg_game_state_data* data)
+{
+    handle_targeting_input(event, action, data);
+
+    switch (action->type)
+    {
+    case ACTION_TARGET_SELECTED: // TARGET_SELECTED
+        ASSERT_M(data->targeting_item != NULL);
+        rg_item* item = data->targeting_item;
+        {
+            bool consumed;
+            item_use(item, NULL, data, &data->logs, &consumed);
+            if (consumed)
+                inventory_remove_item(&data->inventory, &data->items, item);
+        }
+        break;
+    case ACTION_ESCAPE:
+        data->game_state = data->prev_state;
         break;
     }
 }

@@ -166,6 +166,9 @@ void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
     case ST_TURN_PLAYER_DEAD:
         state_player_dead_turn(event, &action, data);
         break;
+    case ST_TARGETING:
+        state_targeting_turn(event, &action, data);
+        break;
     default:
         break;
     }
@@ -307,7 +310,8 @@ void draw(rg_app* app, rg_game_state_data* data)
     console_flush(&data->console, 0, 0);
     console_flush(&data->panel, 0, data->panel_y);
 
-    if (data->game_state == ST_SHOW_INVENTORY || data->game_state == ST_DROP_INVENTORY)
+    if (data->game_state == ST_SHOW_INVENTORY ||
+        data->game_state == ST_DROP_INVENTORY)
     {
         int x =
           (int)((data->screen_width / (double)2) - (menu_width / (double)2));
@@ -359,6 +363,10 @@ int main(int argc, char* argv[])
     data.fov_radius = 10;
     data.game_state = ST_TURN_PLAYER;
     data.prev_state = ST_TURN_PLAYER;
+    data.target_selected = false;
+    data.targeting_item = NULL;
+    data.target_x = -1;
+    data.target_y = -1;
 
     tileset_create(
       &data.tileset, app.renderer, "res/dejavu10x10_gs_tc.png", 32, 8);

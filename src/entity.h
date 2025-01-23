@@ -68,4 +68,5 @@ void entity_attack(rg_entity *e,
                    rg_entity **dead_entity);
 void entity_kill(rg_entity *e, rg_turn_logs *logs);
 float entity_get_distance(rg_entity* a, rg_entity* b);
+float entity_distance_to(rg_entity* a, int x, int y);
 #endif

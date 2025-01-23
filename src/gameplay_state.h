@@ -20,6 +20,7 @@ typedef enum rg_game_state
     ST_TURN_PLAYER_DEAD,
     ST_SHOW_INVENTORY,
     ST_DROP_INVENTORY,
+    ST_TARGETING,
 } rg_game_state;
 
 typedef struct rg_game_state_data
@@ -41,6 +42,10 @@ typedef struct rg_game_state_data
     int max_items_per_room;
     bool fov_light_walls;
     int fov_radius;
+    bool target_selected;
+    int target_x;
+    int target_y;
+    rg_item* targeting_item;
     rg_tileset tileset;
     rg_terminal terminal;
     rg_console console;
@@ -76,4 +81,7 @@ void state_inventory_drop_turn(const SDL_Event* event,
                                rg_action* action,
                                rg_game_state_data* data);
 
+void state_targeting_turn(const SDL_Event* event,
+                          rg_action* action,
+                          rg_game_state_data* data);
 #endif

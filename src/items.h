@@ -12,6 +12,7 @@ typedef enum rg_item_type
 {
     ITEM_POTION_HEAL,
     ITEM_LIGHTNING,
+    ITEM_FIRE_BALL,
 } rg_item_type;
 
 typedef struct rg_item
@@ -33,6 +34,13 @@ typedef struct rg_item
             int damage;
             int maximum_range;
         } lightning;
+        struct
+        {
+            int damage;
+            int radius;
+            const char* targeting_msg;
+            SDL_Color targeting_msg_color;
+        } fireball;
     };
 } rg_item;
 

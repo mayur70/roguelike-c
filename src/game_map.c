@@ -262,6 +262,25 @@ void map_place_entities(rg_map *m,
                          .visible_on_map = true,
                        }));
         }
+        else if(item_chance < 85)
+        {
+            ARRAY_PUSH(items,
+                       ((rg_item){
+                         .x = x,
+                         .y = y,
+                         .ch = '#',
+                         .color = RED,
+                         .name = "Fireball Scroll",
+                         .type = ITEM_FIRE_BALL,
+                         .fireball = {
+                             .damage = 12,
+                             .radius = 3,
+                             .targeting_msg = "Left-click a target tile for the fireball, or right-click to cancel.",
+                             .targeting_msg_color = CYAN,
+                             },
+                         .visible_on_map = true,
+                       }));
+        }
         else
         {
             ARRAY_PUSH(items,
