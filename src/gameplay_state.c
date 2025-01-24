@@ -141,7 +141,7 @@ void handle_player_pickup(const rg_action* action, rg_game_state_data* data)
     for (int i = 0; i < data->items.len; i++)
     {
         rg_item* e = &data->items.data[i];
-        if (e->x == player->x && e->y == player->y)
+        if (e->x == player->x && e->y == player->y && e->visible_on_map)
         {
             inventory_add_item(&data->inventory, &data->items, i, &data->logs);
             status = true;
@@ -444,7 +444,10 @@ void state_inventory_turn(const SDL_Event* event,
             bool consumed;
             item_use(item, player, data, &data->logs, &consumed);
             if (consumed)
+            {
                 inventory_remove_item(&data->inventory, &data->items, item);
+                data->game_state = ST_TURN_ENEMY;
+            }
         }
         break;
     case ACTION_ESCAPE:
@@ -485,7 +488,10 @@ void state_targeting_turn(const SDL_Event* event,
             bool consumed;
             item_use(item, NULL, data, &data->logs, &consumed);
             if (consumed)
+            {
                 inventory_remove_item(&data->inventory, &data->items, item);
+                data->game_state = ST_TURN_ENEMY;
+            }
         }
         break;
     case ACTION_ESCAPE:

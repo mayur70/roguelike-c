@@ -54,8 +54,12 @@ void inventory_add_item(rg_inventory* inventory,
                                 .color = BLUE };
     turn_logs_push(logs, &entry);
 
+    for (int i = 0; i < inventory->len; i++)
+        ASSERT_M(inventory->data[i] != item_idx);
+
     ARRAY_PUSH(inventory, item_idx);
 }
+
 void inventory_remove_item(rg_inventory* inventory,
                            rg_items* items,
                            rg_item* item)
@@ -98,7 +102,8 @@ void inventory_remove_item(rg_inventory* inventory,
     size_t* dest = inventory->data + inv_itex;
     size_t* src = inventory->data + inv_itex + 1;
     size_t sz = inventory->len - inv_itex - 1;
-    memmove(inventory->data, inventory->data, sz);
+    memmove(dest, src, sz * sizeof(dest));
+
     inventory->len--;
 }
 

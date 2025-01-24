@@ -358,7 +358,7 @@ int main(int argc, char* argv[])
     data.room_min_size = 6;
     data.max_rooms = 30;
     data.max_monsters_per_room = 3;
-    data.max_items_per_room = 2;
+    data.max_items_per_room = 8;
     data.fov_light_walls = true;
     data.fov_radius = 10;
     data.game_state = ST_TURN_PLAYER;
