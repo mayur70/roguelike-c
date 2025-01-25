@@ -100,6 +100,15 @@ void basic_monster_update(rg_entity* e,
     }
 }
 
+void confused_monster_update(rg_entity* e,
+                             rg_entity* target,
+                             rg_fov_map* fov_map,
+                             rg_map* game_map,
+                             rg_entity_array* entities,
+                             rg_turn_logs* logs,
+                             rg_entity** dead_entity)
+{}
+
 void handle_player_movement(const rg_action* action, rg_game_state_data* data)
 {
     rg_map* game_map = &data->game_map;
@@ -162,6 +171,86 @@ void handle_player_pickup(const rg_action* action, rg_game_state_data* data)
     }
 }
 
+void handle_entity_idle()
+{
+    // no-op
+}
+
+void handle_entity_follow_player(rg_entity* e,
+                                 rg_entity* target,
+                                 rg_fov_map* fov_map,
+                                 rg_map* game_map,
+                                 rg_entity_array* entities,
+                                 rg_turn_logs* logs,
+                                 rg_entity** dead_entity)
+{
+    basic_monster_update(
+      e, target, fov_map, game_map, entities, logs, dead_entity);
+}
+
+void handle_entity_attack() {}
+
+void handle_entity_confused(rg_entity* e,
+                            rg_entity* target,
+                            rg_fov_map* fov_map,
+                            rg_map* game_map,
+                            rg_entity_array* entities,
+                            rg_turn_logs* logs,
+                            rg_entity** dead_entity)
+{
+    if (e->state.data.confused.num_turns > 0)
+    {
+        int x = RAND_INT(0, 2) - 1;
+        int y = RAND_INT(0, 2) - 1;
+
+        if (x != e->x && y != e->y)
+            entity_move_towards(e, x, y, game_map, entities);
+        e->state.data.confused.num_turns--;
+    }
+    else
+    {
+        e->state.type = e->state.data.confused.prev_state;
+
+        const char* fmt = "The %s is no longer confused!";
+        int len = snprintf(NULL, 0, fmt, e->name);
+        char* buf = malloc(sizeof(char) * (len + 1));
+        snprintf(buf, len, fmt, e->name);
+        rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
+                                    .text = buf,
+                                    .color = RED };
+        turn_logs_push(logs, &entry);
+    }
+}
+
+void enemy_state_update(rg_entity* e,
+                        rg_entity* target,
+                        rg_fov_map* fov_map,
+                        rg_map* game_map,
+                        rg_entity_array* entities,
+                        rg_turn_logs* logs,
+                        rg_entity** dead_entity)
+{
+    switch (e->state.type)
+    {
+    case ENTITY_STATE_NONE:
+        // handle_entity_idle();
+        // no-op
+        break;
+    case ENTITY_STATE_FOLLOW_PLAYER:
+        handle_entity_follow_player(
+          e, target, fov_map, game_map, entities, logs, dead_entity);
+        break;
+    case ENTITY_STATE_ATTACK:
+        // no-op
+        // handle_entity_attack();
+        break;
+    case ENTITY_STATE_CONFUSED:
+        handle_entity_confused(
+          e, target, fov_map, game_map, entities, logs, dead_entity);
+        break;
+    }
+}
+
 void state_enemy_turn(const SDL_Event* event,
                       rg_action* action,
                       rg_game_state_data* data)
@@ -174,27 +263,24 @@ void state_enemy_turn(const SDL_Event* event,
         if (e->fighter.hp <= 0) continue;
 
         rg_entity* player = &data->entities.data[data->player];
-        if (e->type == ENTITY_BASIC_MONSTER)
-        {
-            rg_entity* dead_entity;
-            basic_monster_update(e,
-                                 player,
-                                 &data->fov_map,
-                                 &data->game_map,
-                                 &data->entities,
-                                 &data->logs,
-                                 &dead_entity);
 
-            if (dead_entity != NULL)
+        rg_entity* dead_entity;
+        enemy_state_update(e,
+                           player,
+                           &data->fov_map,
+                           &data->game_map,
+                           &data->entities,
+                           &data->logs,
+                           &dead_entity);
+        if (dead_entity != NULL)
+        {
+            entity_kill(dead_entity, &data->logs);
+            if (dead_entity == player)
             {
-                entity_kill(dead_entity, &data->logs);
-                if (dead_entity == player)
-                {
-                    data->game_state = ST_TURN_PLAYER_DEAD;
-                }
+                data->game_state = ST_TURN_PLAYER_DEAD;
             }
-            if (data->game_state == ST_TURN_PLAYER_DEAD) break;
         }
+        if (data->game_state == ST_TURN_PLAYER_DEAD) break;
     }
     if (data->game_state != ST_TURN_PLAYER_DEAD)
         data->game_state = ST_TURN_PLAYER;

@@ -204,6 +204,7 @@ void map_place_entities(rg_map *m,
                          .blocks = true,
                          .type = ENTITY_BASIC_MONSTER,
                          .fighter = fighter,
+                         .state.type = ENTITY_STATE_FOLLOW_PLAYER,
                          .render_order = RENDER_ORDER_ACTOR,
                        }));
         }
@@ -220,6 +221,7 @@ void map_place_entities(rg_map *m,
                          .blocks = true,
                          .type = ENTITY_BASIC_MONSTER,
                          .fighter = fighter,
+                         .state.type = ENTITY_STATE_FOLLOW_PLAYER,
                          .render_order = RENDER_ORDER_ACTOR,
                        }));
         }
@@ -262,7 +264,7 @@ void map_place_entities(rg_map *m,
                          .visible_on_map = true,
                        }));
         }
-        else if(item_chance < 85)
+        else if (item_chance < 80)
         {
             ARRAY_PUSH(items,
                        ((rg_item){
@@ -276,6 +278,24 @@ void map_place_entities(rg_map *m,
                              .damage = 12,
                              .radius = 3,
                              .targeting_msg = "Left-click a target tile for the fireball, or right-click to cancel.",
+                             .targeting_msg_color = CYAN,
+                             },
+                         .visible_on_map = true,
+                       }));
+        }
+        else if (item_chance < 90)
+        {
+            ARRAY_PUSH(items,
+                       ((rg_item){
+                         .x = x,
+                         .y = y,
+                         .ch = '#',
+                         .color = LIGHT_PINK,
+                         .name = "Confusion Scroll",
+                         .type = ITEM_CAST_CONFUSE,
+                         .confuse = {
+                             .duration = 10,
+                             .targeting_msg = "Left-click an enemy to confuse it, or right-click to cancel.",
                              .targeting_msg_color = CYAN,
                              },
                          .visible_on_map = true,

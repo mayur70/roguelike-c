@@ -69,6 +69,7 @@ void console_print_txt(rg_console *c,
                        const char *txt,
                        SDL_Color color)
 {
+    ASSERT_M(txt != NULL);
     int penx = x, peny = y;
     while (*txt != '\0')
     {

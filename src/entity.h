@@ -10,6 +10,27 @@
 
 #define MAX_ENTITY_NAME 50
 
+typedef enum rg_entity_state_type
+{
+    ENTITY_STATE_NONE,          // IDLE
+    ENTITY_STATE_FOLLOW_PLAYER, // ONLY state in game
+    ENTITY_STATE_ATTACK,
+    ENTITY_STATE_CONFUSED,
+} rg_entity_state_type;
+
+typedef struct rg_entity_state
+{
+    rg_entity_state_type type;
+    union
+    {
+        struct
+        {
+            int num_turns;
+            rg_entity_state_type prev_state;
+        } confused;
+    } data;
+} rg_entity_state;
+
 typedef size_t rg_entity_id;
 
 typedef enum rg_entity_type
@@ -40,6 +61,7 @@ typedef struct rg_entity
     char name[MAX_ENTITY_NAME];
     bool blocks;
     rg_entity_type type;
+    rg_entity_state state;
     rg_fighter fighter;
     rg_render_order render_order;
 } rg_entity;
@@ -67,6 +89,6 @@ void entity_attack(rg_entity *e,
                    rg_turn_logs *logs,
                    rg_entity **dead_entity);
 void entity_kill(rg_entity *e, rg_turn_logs *logs);
-float entity_get_distance(rg_entity* a, rg_entity* b);
-float entity_distance_to(rg_entity* a, int x, int y);
+float entity_get_distance(rg_entity *a, rg_entity *b);
+float entity_distance_to(rg_entity *a, int x, int y);
 #endif

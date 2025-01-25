@@ -107,6 +107,7 @@ void entity_kill(rg_entity* e, rg_turn_logs* logs)
     e->color = DARK_RED;
     e->blocks = false;
     e->render_order = RENDER_ORDER_CORPSE;
+    e->state.type = ENTITY_STATE_NONE;
 
     rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE };
     if (e->type != ENTITY_PLAYER)
