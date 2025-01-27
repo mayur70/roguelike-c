@@ -23,6 +23,7 @@ typedef struct rg_entity_state
     rg_entity_state_type type;
     union
     {
+        long packed;
         struct
         {
             int num_turns;

@@ -26,6 +26,7 @@
 #include "tileset.h"
 #include "turn_log.h"
 #include "types.h"
+#include "savefile.h"
 
 #define DESIRED_FPS 20.0
 #define DESIRED_FRAME_RATE ((1.0 / DESIRED_FPS) * 1000.0)
@@ -35,14 +36,6 @@ int entity_sort_by_render_order(const rg_entity* lhs, const rg_entity* rhs)
     return lhs->render_order - rhs->render_order;
 }
 
-void game_recompute_fov(rg_game_state_data* data)
-{
-    fov_map_compute(&data->fov_map,
-                    data->entities.data[data->player].x,
-                    data->entities.data[data->player].y,
-                    data->fov_radius,
-                    data->fov_light_walls);
-}
 
 void render_bar(rg_console* c,
                 int x,
@@ -180,7 +173,12 @@ void update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
         return;
     }
 
-    if (data->recompute_fov) game_recompute_fov(data);
+    if (data->recompute_fov) 
+        fov_map_compute(&data->fov_map,
+                            data->entities.data[data->player].x,
+                            data->entities.data[data->player].y,
+                            data->fov_radius,
+                            data->fov_light_walls);
 }
 
 void draw(rg_app* app, rg_game_state_data* data)
@@ -344,112 +342,9 @@ int main(int argc, char* argv[])
     app_create(&app);
 
     rg_game_state_data data;
-    data.screen_width = 80;
-    data.screen_height = 50;
-    data.bar_width = 20;
-    data.panel_height = 7;
-    data.panel_y = data.screen_height - data.panel_height;
-    data.message_x = data.bar_width + 2;
-    data.message_width = data.screen_width - data.bar_width - 2;
-    data.message_height = data.panel_height - 1;
-    data.map_width = 80;
-    data.map_height = 43;
-    data.room_max_size = 10;
-    data.room_min_size = 6;
-    data.max_rooms = 30;
-    data.max_monsters_per_room = 3;
-    data.max_items_per_room = 8;
-    data.fov_light_walls = true;
-    data.fov_radius = 10;
-    data.game_state = ST_TURN_PLAYER;
-    data.prev_state = ST_TURN_PLAYER;
-    data.target_selected = false;
-    data.targeting_item = NULL;
-    data.target_x = -1;
-    data.target_y = -1;
-
-    tileset_create(
-      &data.tileset, app.renderer, "res/dejavu10x10_gs_tc.png", 32, 8);
-
-    terminal_create(&data.terminal,
-                    &app,
-                    data.screen_width,
-                    data.screen_height,
-                    &data.tileset,
-                    "roguelike",
-                    true);
-
-    console_create(&data.console,
-                   app.renderer,
-                   data.screen_width,
-                   data.screen_height,
-                   data.terminal.tileset);
-    console_create(&data.panel,
-                   app.renderer,
-                   data.screen_width,
-                   data.panel_height,
-                   &data.tileset);
-    console_create(&data.menu,
-                   app.renderer,
-                   data.screen_width,
-                   data.screen_height,
-                   &data.tileset);
-    data.entities.capacity = data.max_monsters_per_room;
-    data.entities.data =
-      malloc(sizeof(*data.entities.data) * data.entities.capacity);
-    ASSERT_M(data.entities.data != NULL);
-    data.entities.len = 0;
-    data.items.capacity = data.max_items_per_room;
-    data.items.data = malloc(sizeof(*data.items.data) * data.items.capacity);
-    ASSERT_M(data.items.data != NULL);
-    data.items.len = 0;
-    rg_fighter fighter = { .hp = 30, .defence = 2, .power = 5, .max_hp = 30 };
-    ARRAY_PUSH(&data.entities,
-               ((rg_entity){
-                 .x = 0,
-                 .y = 0,
-                 .ch = '@',
-                 .color = WHITE,
-                 .name = "Player",
-                 .blocks = true,
-                 .type = ENTITY_PLAYER,
-                 .fighter = fighter,
-                 .render_order = RENDER_ORDER_ACTOR,
-               }));
-    data.player = data.entities.len - 1;
-
-    inventory_create(&data.inventory, 26);
-
-    turn_logs_create(&data.logs, data.message_width, data.message_height);
-
-    map_create(&data.game_map,
-               data.map_width,
-               data.map_height,
-               data.room_min_size,
-               data.room_max_size,
-               data.max_rooms,
-               data.max_monsters_per_room,
-               data.max_items_per_room,
-               &data.entities,
-               &data.items,
-               data.player);
-
-    fov_map_create(&data.fov_map, data.map_width, data.map_height);
-    for (int y = 0; y < data.map_height; y++)
-    {
-        for (int x = 0; x < data.map_width; x++)
-        {
-            rg_tile* tile = map_get_tile(&data.game_map, x, y);
-            fov_map_set_props(
-              &data.fov_map, x, y, !tile->block_sight, !tile->blocked);
-        }
-    }
-
-    // first draw before waitevent
-    game_recompute_fov(&data);
+    game_state_create(&data, &app);
     SDL_Event event = { 0 };
-    data.mouse_position.x = 0;
-    data.mouse_position.y = 0;
+    
     update(&app, &event, &data);
     draw(&app, &data);
 
@@ -474,17 +369,7 @@ int main(int argc, char* argv[])
         // SLEEP
         SDL_Delay(sleep_time);
     }
-
-    inventory_destroy(&data.inventory);
-    turn_logs_destroy(&data.logs);
-    map_destroy(&data.game_map);
-    free(data.entities.data);
-    console_destroy(&data.menu);
-    console_destroy(&data.console);
-    console_destroy(&data.panel);
-    terminal_destroy(&data.terminal);
-    tileset_destroy(&data.tileset);
-
+    game_state_destroy(&data);
     app_destroy(&app);
     return 0;
 }

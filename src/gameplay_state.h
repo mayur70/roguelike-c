@@ -12,6 +12,7 @@
 #include "terminal.h"
 #include "tileset.h"
 #include "turn_log.h"
+#include "app.h"
 
 typedef enum rg_game_state
 {
@@ -63,6 +64,9 @@ typedef struct rg_game_state_data
     rg_turn_logs logs;
     SDL_Point mouse_position;
 } rg_game_state_data;
+
+void game_state_create(rg_game_state_data* data, rg_app* app);
+void game_state_destroy(rg_game_state_data* data);
 
 void state_player_turn(const SDL_Event* event,
                        rg_action* action,

@@ -7,8 +7,14 @@
 
 #include "astar.h"
 #include "color.h"
+#include "savefile.h"
+#include "array.h"
 
-void entity_move_towards(rg_entity* e,
+
+#define SAVEFILE_NAME "savefile.data"
+//------- internal functions ------------//
+
+static void entity_move_towards(rg_entity* e,
                          int x,
                          int y,
                          rg_map* map,
@@ -28,7 +34,7 @@ void entity_move_towards(rg_entity* e,
     }
 }
 
-void entity_move_astar(rg_entity* e,
+static void entity_move_astar(rg_entity* e,
                        rg_entity* target,
                        rg_map* game_map,
                        rg_entity_array* entities)
@@ -72,7 +78,7 @@ void entity_move_astar(rg_entity* e,
     astar_path_delete(path);
 }
 
-void basic_monster_update(rg_entity* e,
+static void basic_monster_update(rg_entity* e,
                           rg_entity* target,
                           rg_fov_map* fov_map,
                           rg_map* game_map,
@@ -100,7 +106,7 @@ void basic_monster_update(rg_entity* e,
     }
 }
 
-void confused_monster_update(rg_entity* e,
+static void confused_monster_update(rg_entity* e,
                              rg_entity* target,
                              rg_fov_map* fov_map,
                              rg_map* game_map,
@@ -109,7 +115,7 @@ void confused_monster_update(rg_entity* e,
                              rg_entity** dead_entity)
 {}
 
-void handle_player_movement(const rg_action* action, rg_game_state_data* data)
+static void handle_player_movement(const rg_action* action, rg_game_state_data* data)
 {
     rg_map* game_map = &data->game_map;
     int destination_x = data->entities.data[data->player].x + action->dx;
@@ -143,7 +149,7 @@ void handle_player_movement(const rg_action* action, rg_game_state_data* data)
     }
 }
 
-void handle_player_pickup(const rg_action* action, rg_game_state_data* data)
+static void handle_player_pickup(const rg_action* action, rg_game_state_data* data)
 {
     rg_entity* player = &data->entities.data[data->player];
     bool status = false;
@@ -171,12 +177,12 @@ void handle_player_pickup(const rg_action* action, rg_game_state_data* data)
     }
 }
 
-void handle_entity_idle()
+static void handle_entity_idle()
 {
     // no-op
 }
 
-void handle_entity_follow_player(rg_entity* e,
+static void handle_entity_follow_player(rg_entity* e,
                                  rg_entity* target,
                                  rg_fov_map* fov_map,
                                  rg_map* game_map,
@@ -188,9 +194,9 @@ void handle_entity_follow_player(rg_entity* e,
       e, target, fov_map, game_map, entities, logs, dead_entity);
 }
 
-void handle_entity_attack() {}
+static void handle_entity_attack() {}
 
-void handle_entity_confused(rg_entity* e,
+static void handle_entity_confused(rg_entity* e,
                             rg_entity* target,
                             rg_fov_map* fov_map,
                             rg_map* game_map,
@@ -222,7 +228,7 @@ void handle_entity_confused(rg_entity* e,
     }
 }
 
-void enemy_state_update(rg_entity* e,
+static void enemy_state_update(rg_entity* e,
                         rg_entity* target,
                         rg_fov_map* fov_map,
                         rg_map* game_map,
@@ -251,42 +257,8 @@ void enemy_state_update(rg_entity* e,
     }
 }
 
-void state_enemy_turn(const SDL_Event* event,
-                      rg_action* action,
-                      rg_game_state_data* data)
-{
-    for (int i = 0; i < data->entities.len; i++)
-    {
-        if (i == data->player) continue;
 
-        rg_entity* e = &data->entities.data[i];
-        if (e->fighter.hp <= 0) continue;
-
-        rg_entity* player = &data->entities.data[data->player];
-
-        rg_entity* dead_entity;
-        enemy_state_update(e,
-                           player,
-                           &data->fov_map,
-                           &data->game_map,
-                           &data->entities,
-                           &data->logs,
-                           &dead_entity);
-        if (dead_entity != NULL)
-        {
-            entity_kill(dead_entity, &data->logs);
-            if (dead_entity == player)
-            {
-                data->game_state = ST_TURN_PLAYER_DEAD;
-            }
-        }
-        if (data->game_state == ST_TURN_PLAYER_DEAD) break;
-    }
-    if (data->game_state != ST_TURN_PLAYER_DEAD)
-        data->game_state = ST_TURN_PLAYER;
-}
-
-void handle_inventory_input(const SDL_Event* event,
+static void handle_inventory_input(const SDL_Event* event,
                             rg_action* action,
                             rg_game_state_data* data)
 {
@@ -313,7 +285,7 @@ void handle_inventory_input(const SDL_Event* event,
     }
 }
 
-void handle_player_input(const SDL_Event* event,
+static void handle_player_input(const SDL_Event* event,
                          rg_action* action,
                          rg_game_state_data* data)
 {
@@ -387,7 +359,7 @@ void handle_player_input(const SDL_Event* event,
     }
 }
 
-void handle_player_dead_input(const SDL_Event* event,
+static void handle_player_dead_input(const SDL_Event* event,
                               rg_action* action,
                               rg_game_state_data* data)
 {
@@ -409,7 +381,7 @@ void handle_player_dead_input(const SDL_Event* event,
     }
 }
 
-void handle_targeting_input(const SDL_Event* event,
+static void handle_targeting_input(const SDL_Event* event,
                             rg_action* action,
                             rg_game_state_data* data)
 {
@@ -441,6 +413,174 @@ void handle_targeting_input(const SDL_Event* event,
         break;
     }
     }
+}
+
+static void game_state_load_defaults(rg_game_state_data* data, rg_app* app)
+{
+    data->screen_width = 80;
+    data->screen_height = 50;
+    data->bar_width = 20;
+    data->panel_height = 7;
+    data->panel_y = data->screen_height - data->panel_height;
+    data->message_x = data->bar_width + 2;
+    data->message_width = data->screen_width - data->bar_width - 2;
+    data->message_height = data->panel_height - 1;
+    data->map_width = 80;
+    data->map_height = 43;
+    data->room_max_size = 10;
+    data->room_min_size = 6;
+    data->max_rooms = 30;
+    data->max_monsters_per_room = 3;
+    data->max_items_per_room = 8;
+    data->fov_light_walls = true;
+    data->fov_radius = 10;
+    data->game_state = ST_TURN_PLAYER;
+    data->prev_state = ST_TURN_PLAYER;
+    data->target_selected = false;
+    data->targeting_item = NULL;
+    data->target_x = -1;
+    data->target_y = -1;
+    tileset_create(
+      &data->tileset, app->renderer, "res/dejavu10x10_gs_tc.png", 32, 8);
+
+    terminal_create(&data->terminal,
+                    app,
+                    data->screen_width,
+                    data->screen_height,
+                    &data->tileset,
+                    "roguelike",
+                    true);
+
+    console_create(&data->console,
+                   app->renderer,
+                   data->screen_width,
+                   data->screen_height,
+                   data->terminal.tileset);
+    console_create(&data->panel,
+                   app->renderer,
+                   data->screen_width,
+                   data->panel_height,
+                   &data->tileset);
+    console_create(&data->menu,
+                   app->renderer,
+                   data->screen_width,
+                   data->screen_height,
+                   &data->tileset);
+    data->entities.capacity = data->max_monsters_per_room;
+    data->entities.data =
+      malloc(sizeof(*data->entities.data) * data->entities.capacity);
+    ASSERT_M(data->entities.data != NULL);
+    data->entities.len = 0;
+    data->items.capacity = data->max_items_per_room;
+    data->items.data = malloc(sizeof(*data->items.data) * data->items.capacity);
+    ASSERT_M(data->items.data != NULL);
+    data->items.len = 0;
+    rg_fighter fighter = { .hp = 30, .defence = 2, .power = 5, .max_hp = 30 };
+    ARRAY_PUSH(&data->entities,
+               ((rg_entity){
+                 .x = 0,
+                 .y = 0,
+                 .ch = '@',
+                 .color = WHITE,
+                 .name = "Player",
+                 .blocks = true,
+                 .type = ENTITY_PLAYER,
+                 .fighter = fighter,
+                 .render_order = RENDER_ORDER_ACTOR,
+               }));
+    data->player = data->entities.len - 1;
+
+    inventory_create(&data->inventory, 26);
+
+    turn_logs_create(&data->logs, data->message_width, data->message_height);
+
+    map_create(&data->game_map,
+               data->map_width,
+               data->map_height,
+               data->room_min_size,
+               data->room_max_size,
+               data->max_rooms,
+               data->max_monsters_per_room,
+               data->max_items_per_room,
+               &data->entities,
+               &data->items,
+               data->player);
+}
+
+void game_state_create(rg_game_state_data* data, rg_app* app)
+{
+    game_state_load_defaults(data, app);
+
+    // TODO: load game
+    //savefile_save(data, SAVEFILE_NAME);
+    savefile_load(data, SAVEFILE_NAME);
+    fov_map_create(&data->fov_map, data->map_width, data->map_height);
+    for (int y = 0; y < data->map_height; y++)
+    {
+        for (int x = 0; x < data->map_width; x++)
+        {
+            rg_tile* tile = map_get_tile(&data->game_map, x, y);
+            fov_map_set_props(
+              &data->fov_map, x, y, !tile->block_sight, !tile->blocked);
+        }
+    }
+
+    // first draw before waitevent
+    fov_map_compute(&data->fov_map,
+                    data->entities.data[data->player].x,
+                    data->entities.data[data->player].y,
+                    data->fov_radius,
+                    data->fov_light_walls);
+    data->mouse_position.x = 0;
+    data->mouse_position.y = 0;
+}
+
+void game_state_destroy(rg_game_state_data* data) 
+{
+    inventory_destroy(&data->inventory);
+    turn_logs_destroy(&data->logs);
+    map_destroy(&data->game_map);
+    free(data->entities.data);
+    console_destroy(&data->menu);
+    console_destroy(&data->console);
+    console_destroy(&data->panel);
+    terminal_destroy(&data->terminal);
+    tileset_destroy(&data->tileset);
+}
+
+void state_enemy_turn(const SDL_Event* event,
+                      rg_action* action,
+                      rg_game_state_data* data)
+{
+    for (int i = 0; i < data->entities.len; i++)
+    {
+        if (i == data->player) continue;
+
+        rg_entity* e = &data->entities.data[i];
+        if (e->fighter.hp <= 0) continue;
+
+        rg_entity* player = &data->entities.data[data->player];
+
+        rg_entity* dead_entity;
+        enemy_state_update(e,
+                           player,
+                           &data->fov_map,
+                           &data->game_map,
+                           &data->entities,
+                           &data->logs,
+                           &dead_entity);
+        if (dead_entity != NULL)
+        {
+            entity_kill(dead_entity, &data->logs);
+            if (dead_entity == player)
+            {
+                data->game_state = ST_TURN_PLAYER_DEAD;
+            }
+        }
+        if (data->game_state == ST_TURN_PLAYER_DEAD) break;
+    }
+    if (data->game_state != ST_TURN_PLAYER_DEAD)
+        data->game_state = ST_TURN_PLAYER;
 }
 
 void state_player_turn(const SDL_Event* event,

@@ -33,6 +33,7 @@ void map_create(rg_map *m,
     m->height = height;
     m->tiles.capacity = m->width * m->height;
     m->tiles.data = malloc(sizeof(m->tiles.data) * m->tiles.capacity);
+    m->tiles.len = m->tiles.capacity;
     ASSERT_M(m->tiles.data != NULL);
 
     for (int y = 0; y < m->height; y++)
