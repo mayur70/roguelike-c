@@ -3,19 +3,18 @@
 
 #include <stdbool.h>
 
-#include "app.h"
 #include "tileset.h"
 
 typedef struct rg_terminal
 {
     int width;
     int height;
-    rg_app *app;
+    struct rg_app *app;
     rg_tileset *tileset;
 } rg_terminal;
 
 void terminal_create(rg_terminal *t,
-                     rg_app *app,
+                     struct rg_app *app,
                      int w,
                      int h,
                      rg_tileset *tileset,

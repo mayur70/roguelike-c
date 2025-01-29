@@ -3,7 +3,6 @@
 
 #include <SDL.h>
 
-#include "app.h"
 
 typedef enum rg_action_type
 {
@@ -32,7 +31,7 @@ typedef struct rg_action
     };
 } rg_action;
 
-void event_dispatch(rg_app* app,
+void event_dispatch(struct rg_app* app,
                     SDL_Event* event,
                     rg_action* action,
                     SDL_Point* mouse_position,

@@ -24,7 +24,10 @@ add_executable(
     src/gameplay_state.c
     src/inventory.c
     src/items.c
- "src/savefile.h" "src/savefile.c")
+    src/savefile.c
+    src/mainmenu_state.c
+    src/ui.c
+)
 
 target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
 target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)

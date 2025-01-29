@@ -1,6 +1,8 @@
 #ifndef GAMEPLAY_STATE
 #define GAMEPLAY_STATE
 
+#include <stdbool.h>
+
 #include <SDL.h>
 
 #include "console.h"
@@ -12,7 +14,6 @@
 #include "terminal.h"
 #include "tileset.h"
 #include "turn_log.h"
-#include "app.h"
 
 typedef enum rg_game_state
 {
@@ -47,8 +48,6 @@ typedef struct rg_game_state_data
     int target_x;
     int target_y;
     rg_item* targeting_item;
-    rg_tileset tileset;
-    rg_terminal terminal;
     rg_console console;
     rg_console panel;
     rg_console menu;
@@ -65,8 +64,14 @@ typedef struct rg_game_state_data
     SDL_Point mouse_position;
 } rg_game_state_data;
 
-void game_state_create(rg_game_state_data* data, rg_app* app);
+bool game_state_load_game(rg_game_state_data* data, struct rg_app* app);
+void game_state_create_game(rg_game_state_data* data, struct rg_app* app);
 void game_state_destroy(rg_game_state_data* data);
+
+void game_state_update(struct rg_app* app,
+                       SDL_Event* event,
+                       rg_game_state_data* data);
+void game_state_draw(struct rg_app* app, rg_game_state_data* data);
 
 void state_player_turn(const SDL_Event* event,
                        rg_action* action,

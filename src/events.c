@@ -1,5 +1,7 @@
 #include "events.h"
 
+#include "app.h"
+
 void event_dispatch(rg_app *app,
                     SDL_Event *event,
                     rg_action *action,

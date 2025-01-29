@@ -5,6 +5,8 @@
 
 #include <SDL.h>
 
+#include "app.h"
+
 void terminal_create(rg_terminal* t,
                      rg_app* app,
                      int w,

@@ -165,7 +165,14 @@ void turn_log_save(rg_turn_logs* logs, FILE* fp)
 
 char* turn_logs_load(rg_turn_logs* logs, char* buf)
 {
-    sscanf_s(buf, fmt_turn_log_len, &logs->len);
+    size_t len;
+    sscanf_s(buf, fmt_turn_log_len, &len);
+    if (len == 0)
+    {
+        buf = next_line(buf);
+        return buf;
+    }
+    logs->len = len;
     logs->capacity = logs->len;
     if (logs->capacity > 0)
         logs->data = malloc(sizeof(*logs->data) * logs->capacity);
@@ -241,7 +248,10 @@ void savefile_load(rg_game_state_data* data, const char* path)
     sscanf_s(line, fmt_game_state, &data->game_state);
     line = next_line(line);
     line = turn_logs_load(logs, line);
-
+    if (logs->capacity == 0)
+    {
+        turn_logs_create(logs, data->message_width, data->message_height);
+    }
     free(buf);
 }
 
