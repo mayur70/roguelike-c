@@ -48,6 +48,7 @@ typedef struct rg_item
             const char* targeting_msg;
             SDL_Color targeting_msg_color;
         } confuse;
+        char packed[24];
     };
 } rg_item;
 
