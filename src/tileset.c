@@ -4,8 +4,11 @@
 #include <string.h>
 
 #include <SDL_image.h>
+#include <SDL_ttf.h>
 
+#include "color.h"
 #include "panic.h"
+#include "types.h"
 
 int tcod_tileset_chars[TILESET_CHARS_TOTAL] = {
     0x20,   0x21,   0x22,   0x23,   0x24,   0x25,   0x26,   0x27,   0x28,
@@ -39,16 +42,16 @@ int tcod_tileset_chars[TILESET_CHARS_TOTAL] = {
     0x00,   0x00,   0x00,   0x00,
 };
 
-void tileset_create(rg_tileset *ts,
-                    SDL_Renderer *renderer,
-                    const char *file,
+void tileset_create(rg_tileset* ts,
+                    SDL_Renderer* renderer,
+                    const char* file,
                     int tiles_wide,
                     int tiles_high)
 {
     memset(ts, 0, sizeof(rg_tileset));
     // Texture
     {
-        SDL_Surface *s = IMG_Load(file);
+        SDL_Surface* s = IMG_Load(file);
         if (s == NULL) panic("failed to load tileset texture");
         ts->texture = SDL_CreateTextureFromSurface(renderer, s);
         if (ts->texture == NULL)
@@ -74,7 +77,7 @@ void tileset_create(rg_tileset *ts,
                 y += ts->tile_size;
                 assert(y + ts->tile_size <= ts->tiles_high * ts->tile_size);
             }
-            SDL_Rect *r = &ts->srcs[i];
+            SDL_Rect* r = &ts->srcs[i];
             r->x = x;
             r->y = y;
             r->w = ts->tile_size;
@@ -84,7 +87,104 @@ void tileset_create(rg_tileset *ts,
     }
 }
 
-void tileset_destroy(rg_tileset *ts)
+void tileset_create_from_ttf(rg_tileset* ts,
+                             SDL_Renderer* renderer,
+                             const char* file,
+                             int ptsize,
+                             int tiles_wide,
+                             int tiles_high)
+{
+    memset(ts, 0, sizeof(rg_tileset));
+    TTF_Init();
+
+    TTF_Font* fnt = TTF_OpenFontDPI(file, ptsize, 96, 96);
+    ASSERT_M(fnt != NULL);
+
+    SDL_Surface* tmp = TTF_RenderGlyph32_LCD(fnt, 'M', WHITE, BLACK);
+    ASSERT_M(tmp != NULL);
+
+    ts->tile_size = tmp->h;
+    ts->tiles_wide = tiles_wide;
+    ts->tiles_high = tiles_high;
+    int texture_width = tmp->h * tiles_wide;
+    int texture_height = tmp->h * tiles_high;
+    SDL_Surface* main_surface = SDL_CreateRGBSurfaceWithFormat(
+      0, texture_width, texture_height, 32, tmp->format->format);
+    ASSERT_M(main_surface != NULL);
+    /*ts->texture = SDL_CreateTexture(renderer,
+                                    SDL_PIXELFORMAT_RGBA32,
+                                    SDL_TEXTUREACCESS_TARGET,
+                                    texture_width,
+                                    texture_height);*/
+    SDL_FreeSurface(tmp);
+
+    //SDL_SetRenderTarget(renderer, ts->texture);
+    
+    int x = 0, y = 0;
+    for (int i = 0; i < TILESET_CHARS_TOTAL; i++)
+    {
+        int ch = tcod_tileset_chars[i];
+        SDL_Surface* s = TTF_RenderGlyph32_LCD(fnt, ch, WHITE, BLACK);
+        if (s == NULL)
+        {
+            x += ts->tile_size;
+            continue;
+        }
+        if (x + ts->tile_size > texture_width)
+        {
+            x = 0;
+            y += ts->tile_size;
+        }
+        //SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+        SDL_Rect dest;
+        dest.x = x + (ts->tile_size / 2 - s->w / 2);
+        dest.y = y;
+        dest.w = s->w;
+        dest.h = s->h;
+        if (ts->tile_size == -1) ts->tile_size = s->h;
+        //SDL_RenderCopy(renderer, t, NULL, &dest);
+        SDL_BlitSurface(s, NULL, main_surface, &dest);
+        /*
+        SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+        SDL_Rect bound = { x, y, s->h, s->h };
+        SDL_RenderDrawRect(renderer, &bound);*/
+
+        SDL_FreeSurface(s);
+        //SDL_DestroyTexture(t);
+        x += ts->tile_size;
+    }
+    SDL_SetColorKey(
+      main_surface, SDL_TRUE, SDL_MapRGB(main_surface->format, 0, 0, 0));
+    ts->texture = SDL_CreateTextureFromSurface(renderer, main_surface);
+    ASSERT_M(ts->texture != NULL);
+    //SDL_SetRenderTarget(renderer, NULL);
+    TTF_CloseFont(fnt);
+    TTF_Quit();
+
+    memcpy(ts->char_indices, tcod_tileset_chars, sizeof(ts->char_indices));
+
+    // SRC Rects
+    {
+        int x = 0, y = 0;
+        for (int i = 0; i < TILESET_CHARS_TOTAL; i++)
+        {
+            if (x + ts->tile_size > ts->tiles_wide * ts->tile_size)
+            {
+                x = 0;
+                y += ts->tile_size;
+                assert(y + ts->tile_size <= ts->tiles_high * ts->tile_size);
+            }
+            SDL_Rect* r = &ts->srcs[i];
+            r->x = x;
+            r->y = y;
+            r->w = ts->tile_size;
+            r->h = ts->tile_size;
+            x += ts->tile_size;
+        }
+    }
+}
+
+void tileset_destroy(rg_tileset* ts)
 {
     if (ts == NULL) return;
     if (ts->texture != NULL) SDL_DestroyTexture(ts->texture);

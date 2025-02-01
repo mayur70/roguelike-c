@@ -67,7 +67,7 @@ static void draw(rg_app* app)
 int main(int argc, char* argv[])
 {
 #ifdef _WIN32
-    // SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
+     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
 #endif
 
     srand((unsigned int)time(NULL));
@@ -76,7 +76,8 @@ int main(int argc, char* argv[])
     app_create(&app,
                80,
                50,
-               "res/dejavu10x10_gs_tc.png",
+               "res/DejaVuSansMono.ttf",
+               10,
                32,
                8,
                "res/menu_background.png");
@@ -86,6 +87,7 @@ int main(int argc, char* argv[])
 
     update(&app, &event);
     draw(&app);
+
 
     while (app.running)
     {
@@ -100,6 +102,18 @@ int main(int argc, char* argv[])
 
         update(&app, &event);
         draw(&app);
+        
+        #if 0
+        SDL_SetRenderTarget(app.renderer, NULL);
+        SDL_SetRenderDrawColor(app.renderer, 0, 0, 0, 255);
+        SDL_RenderClear(app.renderer);
+        SDL_Rect dest = { 0 };
+        SDL_QueryTexture(app.tileset.texture, NULL, NULL, &dest.w, &dest.h);
+        SDL_RenderCopy(app.renderer, app.tileset.texture, NULL, &dest);
+        SDL_SetRenderDrawColor(app.renderer, 0, 255, 0, 255);
+        SDL_RenderDrawRect(app.renderer, &dest);
+        SDL_RenderPresent(app.renderer);
+        #endif
 
         Uint64 frame_end = SDL_GetPerformanceCounter();
         double dt = (frame_end - frame_start) /

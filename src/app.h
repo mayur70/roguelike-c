@@ -35,7 +35,8 @@ typedef struct rg_app
 void app_create(rg_app* app,
                 int screen_width,
                 int screen_height,
-                const char* tileset_path,
+                const char* tileset_font,
+                int font_size,
                 int tiles_wide,
                 int tiles_high,
                 const char* menu_bg_texture_path);

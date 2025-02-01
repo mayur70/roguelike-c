@@ -22,9 +22,24 @@ void console_create(rg_console *c,
 void console_destroy(rg_console *c);
 
 void console_print(rg_console *c, int x, int y, int ch, SDL_Color color);
-void console_print_txt(rg_console *c, int x, int y, const char* txt, SDL_Color color);
+void console_print_txt(rg_console *c,
+                       int x,
+                       int y,
+                       const char *txt,
+                       SDL_Color color);
 void console_fill(rg_console *c, int x, int y, SDL_Color color);
-void console_fill_rect(rg_console *c, int x, int y, int w, int h, SDL_Color color);
+void console_fill_rect(rg_console *c,
+                       int x,
+                       int y,
+                       int w,
+                       int h,
+                       SDL_Color color);
+void console_draw_rect(rg_console *c,
+                       int x,
+                       int y,
+                       int w,
+                       int h,
+                       SDL_Color color);
 
 void console_clear(rg_console *c, SDL_Color color);
 void console_begin(rg_console *c);

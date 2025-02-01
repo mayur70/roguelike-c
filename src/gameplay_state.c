@@ -5,11 +5,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "app.h"
 #include "array.h"
 #include "astar.h"
 #include "color.h"
 #include "savefile.h"
-#include "app.h"
 
 #define SAVEFILE_NAME "savefile.data"
 //------- internal functions ------------//
@@ -554,15 +554,14 @@ static void with_defaults(rg_game_state_data* data, rg_app* app)
     inventory_create(&data->inventory, 26);
 }
 
-
 bool game_state_load_game(rg_game_state_data* data, rg_app* app)
 {
     if (!savefile_exists(SAVEFILE_NAME)) return false;
 
     with_defaults(data, app);
- 
+
     savefile_load(data, SAVEFILE_NAME);
-    
+
     fov_map_create(&data->fov_map, data->map_width, data->map_height);
     for (int y = 0; y < data->map_height; y++)
     {
@@ -658,8 +657,8 @@ void game_state_destroy(rg_game_state_data* data)
     console_destroy(&data->menu);
     console_destroy(&data->console);
     console_destroy(&data->panel);
-    //terminal_destroy(&data->terminal);
-    //tileset_destroy(&data->tileset);
+    // terminal_destroy(&data->terminal);
+    // tileset_destroy(&data->tileset);
 }
 
 void game_state_update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
@@ -754,15 +753,29 @@ void game_state_draw(rg_app* app, rg_game_state_data* data)
             if (visible)
             {
                 tile->explored = true;
-                if (is_wall) console_fill(console, x, y, LIGHT_WALL);
+                if (is_wall)
+                {
+                    // console_fill(console, x, y, LIGHT_WALL);
+                    console_print(console, x, y, '#', WHITE);
+                }
                 else
-                    console_fill(console, x, y, LIGHT_GROUND);
+                {
+                    // console_fill(console, x, y, LIGHT_GROUND);
+                    console_print(console, x, y, '.', WHITE);
+                }
             }
             else if (tile->explored)
             {
-                if (is_wall) console_fill(console, x, y, DARK_WALL);
+                if (is_wall)
+                {
+                    console_print(console, x, y, '#', DARK_GREY);
+                    // console_fill(console, x, y, DARK_WALL);
+                }
                 else
-                    console_fill(console, x, y, DARK_GROUND);
+                {
+
+                    // console_fill(console, x, y, DARK_GROUND);
+                }
             }
         }
     }
@@ -800,7 +813,7 @@ void game_state_draw(rg_app* app, rg_game_state_data* data)
     char* names = get_names_under_mouse(data);
     if (names != NULL)
     {
-        console_print_txt(&data->panel, 1, 0, names, LIGHT_GREY);
+        console_print_txt(&data->panel, 1, 0, names, WHITE);
         free(names);
     }
     for (int i = 0, y = 1; i < data->logs.len; i++, y++)
@@ -826,6 +839,7 @@ void game_state_draw(rg_app* app, rg_game_state_data* data)
                        &data->inventory,
                        menu_width,
                        &menu_height);
+
         console_end(&data->menu);
     }
     else if (data->game_state == ST_DROP_INVENTORY)
@@ -847,7 +861,20 @@ void game_state_draw(rg_app* app, rg_game_state_data* data)
     SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 255);
     SDL_RenderClear(app->renderer);
     console_flush(&data->console, 0, 0);
-    console_flush(&data->panel, 0, data->panel_y);
+    {
+
+        SDL_Rect r = { .x = 0, .y = data->panel_y * data->panel.tileset->tile_size, .w = 0, .h = 0 };
+        SDL_QueryTexture(data->panel.texture, NULL, NULL, &r.w, &r.h);
+
+        SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 255);
+        SDL_RenderFillRect(app->renderer, &r);
+
+        r.y -= 1;
+        SDL_SetRenderDrawColor(app->renderer, 255, 255, 255, 255);
+        SDL_RenderDrawRect(app->renderer, &r);
+
+        console_flush(&data->panel, 0, data->panel_y);
+    }
 
     if (data->game_state == ST_SHOW_INVENTORY ||
         data->game_state == ST_DROP_INVENTORY)
@@ -861,9 +888,16 @@ void game_state_draw(rg_app* app, rg_game_state_data* data)
                        menu_width * data->menu.tileset->tile_size,
                        menu_height * data->menu.tileset->tile_size };
 
-        SDL_SetRenderDrawBlendMode(app->renderer, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 178);
+        // SDL_SetRenderDrawBlendMode(app->renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 255);
         SDL_RenderFillRect(app->renderer, &r);
+        r.x -= 1;
+        r.y -= 1;
+        r.w += 2;
+        r.h += 2;
+        SDL_SetRenderDrawColor(app->renderer, 255, 255, 255, 255);
+        SDL_RenderDrawRect(app->renderer, &r);
+
         console_flush(&data->menu, x, y);
     }
     SDL_RenderPresent(app->renderer);

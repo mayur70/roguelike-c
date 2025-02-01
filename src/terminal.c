@@ -24,6 +24,8 @@ void terminal_create(rg_terminal* t,
     SDL_SetWindowSize(t->app->window,
                       t->width * t->tileset->tile_size,
                       t->height * t->tileset->tile_size);
+    SDL_SetWindowPosition(
+      t->app->window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     SDL_SetWindowTitle(t->app->window, title);
     SDL_ShowWindow(t->app->window);
     SDL_RenderSetLogicalSize(t->app->renderer,

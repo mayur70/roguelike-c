@@ -9,7 +9,8 @@
 void app_create(rg_app *app,
                 int screen_width,
                 int screen_height,
-                const char *tileset_path,
+                const char *tileset_font,
+                int font_size,
                 int tiles_wide,
                 int tiles_high,
                 const char *menu_bg_texture_path)
@@ -37,8 +38,13 @@ void app_create(rg_app *app,
     if (app->renderer == NULL) panic("failed to create renderer");
     app->screen = APP_SCREEN_MENU;
 
-    tileset_create(
-      &app->tileset, app->renderer, tileset_path, tiles_wide, tiles_high);
+    tileset_create_from_ttf(&app->tileset,
+                            app->renderer,
+                            tileset_font,
+                            font_size,
+                            tiles_wide,
+                            tiles_high);
+    //tileset_create(&app->tileset, app->renderer, tileset_path, );
 
     terminal_create(&app->terminal,
                     app,
@@ -51,7 +57,8 @@ void app_create(rg_app *app,
     {
         SDL_Surface *s = IMG_Load(menu_bg_texture_path);
         if (s == NULL) panic("failed to load menu_bg_texture");
-        app->main_menu_bg_texture = SDL_CreateTextureFromSurface(app->renderer, s);
+        app->main_menu_bg_texture =
+          SDL_CreateTextureFromSurface(app->renderer, s);
         if (app->main_menu_bg_texture == NULL)
             panic("failed to create menu_bg_texture from surface");
         SDL_FreeSurface(s);
