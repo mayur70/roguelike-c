@@ -38,12 +38,14 @@ typedef enum rg_entity_type
 {
     ENTITY_PLAYER,
     ENTITY_BASIC_MONSTER,
+    ENTITY_STAIRS,
 } rg_entity_type;
 
 typedef enum rg_render_order
 {
+    RENDER_ORDER_STAIRS,
     RENDER_ORDER_CORPSE,
-    RENDER_ORDER_ACTOR
+    RENDER_ORDER_ACTOR,
 } rg_render_order;
 
 typedef struct rg_fighter

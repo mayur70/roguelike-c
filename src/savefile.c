@@ -10,6 +10,11 @@
 
 #include "types.h"
 
+#define TEXT_LEN_M "text_len=%zu"
+#define TEXT_M "text="
+const char* fmt_color = "color=[%hhu,%hhu,%hhu,%hhu]";
+const char* fmt_txt = TEXT_LEN_M " " TEXT_M "%s";
+
 const char* fmt_entity_len = "entity_len=%zu";
 const char* fmt_entity = "entity pos=[%d,%d] ch=%c color=[%hhu,%hhu,%hhu,%hhu]";
 const char* fmt_entity_name = " name='%s' ";
@@ -18,8 +23,12 @@ const char* fmt_entity_rem = "blocks=%d type=%d state=[%d, %ld] "
 
 const char* fmt_item_len = "item_len=%zu";
 const char* fmt_item = "item pos=[%d,%d] ch=%c color=[%hhu,%hhu,%hhu,%hhu]";
-const char* fmt_item_name = "name='%s'";
-const char* fmt_item_rem = "visible=%d type=%d packed=";
+const char* fmt_item_name = " name='%s' ";
+const char* fmt_item_rem = "visible=%d type=%d";
+const char* fmt_item_heal = " amount=%d";
+const char* fmt_item_lightning = " damage=%d range=%d";
+const char* fmt_item_fireball = " damage=%d radius=%d";
+const char* fmt_item_confuse = " duration=%d";
 
 const char* fmt_inventory_len = "inventory_len=%zu";
 const char* fmt_inventory = "inventory id=%zu";
@@ -42,6 +51,39 @@ char* next_line(char* start)
     while (*end != EOF && *end != '\0' && *end != '\n') end++;
     if (*end == '\n') end++;
     return end;
+}
+
+static void add_space(FILE* fp)
+{
+    const char* s = "%c";
+    fprintf(fp, s, ' ');
+}
+
+static void color_save(SDL_Color* c, FILE* fp)
+{
+    fprintf(fp, fmt_color, c->r, c->g, c->b, c->a);
+}
+
+static char* color_load(SDL_Color* c, char* buf)
+{
+    int ret = sscanf(buf, fmt_color, &c->r, &c->g, &c->b, &c->a);
+    ASSERT_M(ret == 4);
+    return strchr(buf, ' ');
+}
+
+static void text_save(const char* txt, FILE* fp)
+{
+    fprintf(fp, fmt_txt, strlen(txt), txt);
+}
+
+static char* text_load(char* txt, char* buf)
+{
+    size_t sz = 0;
+    sscanf_s(buf, TEXT_LEN_M, &sz);
+    char* start = strstr(buf, TEXT_M) + 5;
+    ASSERT_M(start != NULL);
+    memcpy(txt, start, sz);
+    return start + sz;
 }
 
 void entity_save(rg_entity* e, FILE* fp)
@@ -82,7 +124,36 @@ void item_save(rg_item* i, FILE* fp)
             i->color.a);
     fprintf(fp, fmt_item_name, i->name);
     fprintf(fp, fmt_item_rem, i->visible_on_map, i->type);
-    fwrite(i->packed, 1, sizeof(i->packed), fp);
+    switch (i->type)
+    {
+    case ITEM_POTION_HEAL:
+        fprintf(fp, fmt_item_heal, i->heal.amount);
+        break;
+    case ITEM_LIGHTNING:
+        fprintf(fp,
+                fmt_item_lightning,
+                i->lightning.damage,
+                i->lightning.maximum_range);
+        break;
+    case ITEM_FIRE_BALL:
+        fprintf(fp, fmt_item_fireball, i->fireball.damage, i->fireball.radius);
+        add_space(fp);
+        color_save(&i->fireball.targeting_msg_color, fp);
+        add_space(fp);
+        text_save(i->fireball.targeting_msg, fp);
+        add_space(fp);
+        break;
+    case ITEM_CAST_CONFUSE:
+        fprintf(fp, fmt_item_confuse, i->confuse.duration);
+        add_space(fp);
+        color_save(&i->fireball.targeting_msg_color, fp);
+        add_space(fp);
+        text_save(i->fireball.targeting_msg, fp);
+        add_space(fp);
+        break;
+    default:
+        ASSERT_M(false);
+    }
 }
 
 void entity_load(rg_entity* e, const char* buf)
@@ -125,6 +196,7 @@ void entity_load(rg_entity* e, const char* buf)
 
 char* entities_load(rg_entity_array* entities, char* buf)
 {
+    memset(entities, sizeof(*entities), 0);
     const int ret = sscanf_s(buf, fmt_entity_len, &entities->len);
     ASSERT_M(ret == 1);
 
@@ -144,6 +216,7 @@ char* entities_load(rg_entity_array* entities, char* buf)
 
 char* item_load(rg_item* i, const char* buf)
 {
+    memset(i, sizeof(*i), 0);
     int visible = 0;
     int ret = sscanf(buf,
                      fmt_item,
@@ -157,21 +230,64 @@ char* item_load(rg_item* i, const char* buf)
     ASSERT_M(ret == 7);
     char* nstart = strstr(buf, "name='") + 6;
     ASSERT_M(nstart != 0);
-    char* nend = strchr(nstart, '\'');
-    size_t sz = nend - nstart;
+    char* ptr = strchr(nstart, '\'');
+    size_t sz = ptr - nstart;
     memcpy(i->name, nstart, sz);
     i->name[sz] = '\0';
-    nend += 1;
-    ret = sscanf_s(nend, fmt_item_rem, &visible, &i->type);
+    ptr += 2;
+    ret = sscanf_s(ptr, fmt_item_rem, &visible, &i->type);
     i->visible_on_map = visible;
+    ptr = strstr(ptr, "type=") + 5 + 1 + 1;
     ASSERT_M(ret == 2);
-    char* pstart = strstr(nend, "packed=") + 7;
-    memcpy(i->packed, pstart, sizeof(i->packed));
-    return pstart + sizeof(i->packed);
+
+    switch (i->type)
+    {
+    case ITEM_POTION_HEAL:
+    {
+        int res = sscanf_s(ptr, fmt_item_heal, &i->heal.amount);
+        ASSERT_M(res == 1);
+        break;
+    }
+    case ITEM_LIGHTNING:
+    {
+
+        int res = sscanf_s(ptr,
+                           fmt_item_lightning,
+                           &i->lightning.damage,
+                           &i->lightning.maximum_range);
+        ASSERT_M(res == 2);
+        break;
+    }
+    case ITEM_FIRE_BALL:
+    {
+        int res = sscanf_s(
+          ptr, fmt_item_fireball, &i->fireball.damage, &i->fireball.radius);
+        ASSERT_M(res == 2);
+        ptr = strstr(ptr, "color=");
+        ptr = color_load(&i->fireball.targeting_msg_color, ptr);
+        ptr++;
+        ptr = text_load((char*)i->fireball.targeting_msg, ptr);
+        break;
+    }
+    case ITEM_CAST_CONFUSE:
+    {
+        int res = sscanf_s(ptr, fmt_item_confuse, &i->confuse.duration);
+        ASSERT_M(res == 1);
+        ptr = strstr(ptr, "color=");
+        ptr = color_load(&i->fireball.targeting_msg_color, ptr);
+        ptr = text_load((char*)i->fireball.targeting_msg, ptr + 1);
+        break;
+    }
+    default:
+        ASSERT_M(false);
+    }
+    ptr = next_line(ptr);
+    return ptr;
 }
 
 char* items_load(rg_items* items, char* buf)
 {
+    memset(items, sizeof(*items), 0);
     const int ret = sscanf_s(buf, fmt_item_len, &items->len);
     ASSERT_M(ret == 1);
 
@@ -191,6 +307,7 @@ char* items_load(rg_items* items, char* buf)
 
 static char* inventory_load(rg_inventory* iv, char* buf)
 {
+    memset(iv, sizeof(*iv), 0);
     inventory_create(iv, 26);
     const int ret = sscanf_s(buf, fmt_inventory_len, &iv->len);
     ASSERT_M(ret == 1);
@@ -225,6 +342,7 @@ void game_map_save(rg_map* m, FILE* fp)
 
 char* game_map_load(rg_map* m, char* buf)
 {
+    memset(m, sizeof(*m), 0);
     int ret;
     ret = sscanf_s(buf, fmt_game_map, &m->width, &m->height);
     ASSERT_M(ret == 2);
@@ -269,12 +387,14 @@ void turn_log_save(rg_turn_logs* logs, FILE* fp)
     }
 }
 
-char* turn_logs_load(rg_turn_logs* logs, char* buf)
+static char* turn_logs_load(rg_turn_logs* logs, char* buf)
 {
+    memset(logs, sizeof(*logs), 0);
     size_t len;
     sscanf_s(buf, fmt_turn_log_len, &len);
     if (len == 0)
     {
+        logs->len = logs->capacity = 0;
         buf = next_line(buf);
         return buf;
     }

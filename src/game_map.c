@@ -19,6 +19,7 @@ typedef struct room_array
 void map_create(rg_map *m,
                 int width,
                 int height,
+                int level,
                 int room_min_size,
                 int room_max_size,
                 int max_rooms,
@@ -31,6 +32,7 @@ void map_create(rg_map *m,
     memset(m, 0, sizeof(rg_map));
     m->width = width;
     m->height = height;
+    m->level = level;
     m->tiles.capacity = m->width * m->height;
     m->tiles.data = malloc(sizeof(m->tiles.data) * m->tiles.capacity);
     m->tiles.len = m->tiles.capacity;
@@ -101,6 +103,20 @@ void map_create(rg_map *m,
         memcpy(&rooms.data[rooms.len], &new_room, sizeof(SDL_Rect));
         rooms.len++;
     }
+    
+    //Stairs
+    SDL_Rect last_room = rooms.data[rooms.len - 1];
+    ARRAY_PUSH(entities,
+               ((rg_entity){
+                 .x = last_room.x + last_room.w / 2,
+                 .y = last_room.y + last_room.h / 2,
+                 .ch = '>',
+                 .color = WHITE,
+                 .name = "Stairs",
+                 .blocks = false,
+                 .type = ENTITY_STAIRS,
+                 .render_order = RENDER_ORDER_STAIRS,
+               }));
     free(rooms.data);
 }
 

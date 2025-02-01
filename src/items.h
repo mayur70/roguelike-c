@@ -7,6 +7,7 @@
 #include "turn_log.h"
 
 #define MAX_ITEM_NAME 50
+#define MAX_TRGT_MSG_LEN 75
 
 typedef enum rg_item_type
 {
@@ -39,16 +40,15 @@ typedef struct rg_item
         {
             int damage;
             int radius;
-            const char* targeting_msg;
+            const char targeting_msg[MAX_TRGT_MSG_LEN];
             SDL_Color targeting_msg_color;
         } fireball;
         struct
         {
             int duration;
-            const char* targeting_msg;
+            const char targeting_msg[MAX_TRGT_MSG_LEN];
             SDL_Color targeting_msg_color;
         } confuse;
-        char packed[24];
     };
 } rg_item;
 

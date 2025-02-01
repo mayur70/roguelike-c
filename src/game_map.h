@@ -29,11 +29,13 @@ typedef struct rg_map
     int width;
     int height;
     rg_tile_array tiles;
+    int level;
 } rg_map;
 
 void map_create(rg_map *m,
                 int w,
                 int h,
+                int level,
                 int room_min_size,
                 int room_max_size,
                 int max_rooms,

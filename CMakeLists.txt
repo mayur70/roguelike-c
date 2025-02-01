@@ -29,8 +29,8 @@ add_executable(
     src/ui.c
 )
 
-target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
-target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
+# target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
+# target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
 
 # SDL2::SDL2main may or may not be available. It is e.g. required by Windows GUI applications
 if(TARGET SDL2::SDL2main)

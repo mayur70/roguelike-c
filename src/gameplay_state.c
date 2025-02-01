@@ -618,6 +618,7 @@ void game_state_create_game(rg_game_state_data* data, rg_app* app)
     map_create(&data->game_map,
                data->map_width,
                data->map_height,
+                1,
                data->room_min_size,
                data->room_max_size,
                data->max_rooms,
@@ -791,7 +792,9 @@ void game_state_draw(rg_app* app, rg_game_state_data* data)
     for (int i = 0; i < entities->len; i++)
     {
         const rg_entity* e = &entities->data[i];
-        if (fov_map_is_in_fov(fov_map, e->x, e->y))
+        if (fov_map_is_in_fov(fov_map, e->x, e->y) ||
+            (e->type == ENTITY_STAIRS &&
+             map_get_tile(game_map, e->x, e->y)->explored))
             console_print(console, e->x, e->y, e->ch, e->color);
     }
     console_end(&data->console);
@@ -863,7 +866,10 @@ void game_state_draw(rg_app* app, rg_game_state_data* data)
     console_flush(&data->console, 0, 0);
     {
 
-        SDL_Rect r = { .x = 0, .y = data->panel_y * data->panel.tileset->tile_size, .w = 0, .h = 0 };
+        SDL_Rect r = { .x = 0,
+                       .y = data->panel_y * data->panel.tileset->tile_size,
+                       .w = 0,
+                       .h = 0 };
         SDL_QueryTexture(data->panel.texture, NULL, NULL, &r.w, &r.h);
 
         SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 255);
@@ -1007,8 +1013,11 @@ void state_inventory_turn(const SDL_Event* event,
                           rg_game_state_data* data)
 {
     if (data->game_state != ST_SHOW_INVENTORY)
+    {
         data->prev_state = data->game_state;
-    data->game_state = ST_SHOW_INVENTORY;
+        data->game_state = ST_SHOW_INVENTORY;
+        return;
+    }
 
     handle_inventory_input(event, action, data);
 
