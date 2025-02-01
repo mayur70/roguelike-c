@@ -33,7 +33,7 @@ const char* fmt_item_confuse = " duration=%d";
 const char* fmt_inventory_len = "inventory_len=%zu";
 const char* fmt_inventory = "inventory id=%zu";
 
-const char* fmt_game_map = "map=[%d,%d]";
+const char* fmt_game_map = "map=[%d,%d] level=%d";
 const char* fmt_tile_len = "tile_len=%zu";
 const char* fmt_tile = "tile=[%d,%d,%d]";
 
@@ -329,7 +329,7 @@ void tile_save(rg_tile* t, FILE* fp)
 
 void game_map_save(rg_map* m, FILE* fp)
 {
-    fprintf(fp, fmt_game_map, m->width, m->height);
+    fprintf(fp, fmt_game_map, m->width, m->height, m->level);
     fprintf(fp, "\n");
     fprintf(fp, fmt_tile_len, m->tiles.len);
     fprintf(fp, "\n");
@@ -344,8 +344,8 @@ char* game_map_load(rg_map* m, char* buf)
 {
     memset(m, sizeof(*m), 0);
     int ret;
-    ret = sscanf_s(buf, fmt_game_map, &m->width, &m->height);
-    ASSERT_M(ret == 2);
+    ret = sscanf_s(buf, fmt_game_map, &m->width, &m->height, &m->level);
+    ASSERT_M(ret == 3);
     char* line = next_line(buf);
     ret = sscanf_s(line, fmt_tile_len, &m->tiles.len);
     ASSERT_M(ret == 1);

@@ -271,7 +271,7 @@ static void handle_inventory_input(const SDL_Event* event,
         int index = (event->key.keysym.sym) - 'a';
         if (index >= 0)
         {
-            action->type = ACTION_INVENTORY_SELECT;
+            action->type = ACTION_SELECT;
             action->index = index;
             return;
         }
@@ -353,6 +353,9 @@ static void handle_player_input(const SDL_Event* event,
             break;
         case SDLK_ESCAPE:
             action->type = ACTION_ESCAPE;
+            break;
+        case SDLK_RETURN:
+            action->type = ACTION_SELECT;
             break;
         }
         break;
@@ -508,6 +511,58 @@ static char* get_names_under_mouse(rg_game_state_data* data)
     return buf;
 }
 
+static void game_level_create(rg_game_state_data* data, int level)
+{
+    map_create(&data->game_map,
+               data->map_width,
+               data->map_height,
+               level,
+               data->room_min_size,
+               data->room_max_size,
+               data->max_rooms,
+               data->max_monsters_per_room,
+               data->max_items_per_room,
+               &data->entities,
+               &data->items,
+               data->player);
+
+    fov_map_create(&data->fov_map, data->map_width, data->map_height);
+    for (int y = 0; y < data->map_height; y++)
+    {
+        for (int x = 0; x < data->map_width; x++)
+        {
+            rg_tile* tile = map_get_tile(&data->game_map, x, y);
+            fov_map_set_props(
+              &data->fov_map, x, y, !tile->block_sight, !tile->blocked);
+        }
+    }
+
+    // first draw before waitevent
+    fov_map_compute(&data->fov_map,
+                    data->entities.data[data->player].x,
+                    data->entities.data[data->player].y,
+                    data->fov_radius,
+                    data->fov_light_walls);
+}
+
+static void game_next_level(rg_game_state_data* data)
+{
+    int level = data->game_map.level;
+    if (data->player != 0)
+    {
+        rg_entity* p = &data->entities.data[data->player];
+        data->player = 0;
+        memcpy(data->entities.data, p, sizeof(*p));
+    }
+    data->entities.len = 1;
+    rg_entity* p = &data->entities.data[data->player];
+    p->fighter.hp = (int)floor(p->fighter.max_hp / 2.0);
+    map_destroy(&data->game_map);
+    fov_map_destroy(&data->fov_map);
+
+    game_level_create(data, level + 1);
+}
+
 static void with_defaults(rg_game_state_data* data, rg_app* app)
 {
     data->screen_width = app->screen_width;
@@ -615,36 +670,8 @@ void game_state_create_game(rg_game_state_data* data, rg_app* app)
 
     turn_logs_create(&data->logs, data->message_width, data->message_height);
 
-    map_create(&data->game_map,
-               data->map_width,
-               data->map_height,
-                1,
-               data->room_min_size,
-               data->room_max_size,
-               data->max_rooms,
-               data->max_monsters_per_room,
-               data->max_items_per_room,
-               &data->entities,
-               &data->items,
-               data->player);
-
-    fov_map_create(&data->fov_map, data->map_width, data->map_height);
-    for (int y = 0; y < data->map_height; y++)
-    {
-        for (int x = 0; x < data->map_width; x++)
-        {
-            rg_tile* tile = map_get_tile(&data->game_map, x, y);
-            fov_map_set_props(
-              &data->fov_map, x, y, !tile->block_sight, !tile->blocked);
-        }
-    }
-
-    // first draw before waitevent
-    fov_map_compute(&data->fov_map,
-                    data->entities.data[data->player].x,
-                    data->entities.data[data->player].y,
-                    data->fov_radius,
-                    data->fov_light_walls);
+    game_level_create(data, 1);
+    
     data->mouse_position.x = 0;
     data->mouse_position.y = 0;
 }
@@ -792,10 +819,16 @@ void game_state_draw(rg_app* app, rg_game_state_data* data)
     for (int i = 0; i < entities->len; i++)
     {
         const rg_entity* e = &entities->data[i];
-        if (fov_map_is_in_fov(fov_map, e->x, e->y) ||
-            (e->type == ENTITY_STAIRS &&
-             map_get_tile(game_map, e->x, e->y)->explored))
+        if (fov_map_is_in_fov(fov_map, e->x, e->y))
+        {
             console_print(console, e->x, e->y, e->ch, e->color);
+        }
+        else if (e->type == ENTITY_STAIRS &&
+                 map_get_tile(game_map, e->x, e->y)->explored)
+        {
+            console_fill(console, e->x, e->y, BLACK);
+            console_print(console, e->x, e->y, e->ch, e->color);
+        }
     }
     console_end(&data->console);
 
@@ -813,6 +846,14 @@ void game_state_draw(rg_app* app, rg_game_state_data* data)
                player->fighter.max_hp,
                LIGHT_RED,
                DARK_RED);
+    {
+        const char* fmt = "Dungeon level: %d";
+        int len = snprintf(NULL, 0, fmt, data->game_map.level);
+        char* buf = malloc(sizeof(char) * (len + 1));
+        snprintf(buf, len + 1, fmt, data->game_map.level);   
+        console_print_txt(&data->panel, 1, 3, buf, WHITE);
+        free(buf);
+    }
     char* names = get_names_under_mouse(data);
     if (names != NULL)
     {
@@ -966,6 +1007,34 @@ void state_player_turn(const SDL_Event* event,
     case ACTION_DROP_INVENTORY:
         state_inventory_drop_turn(event, action, data);
         break;
+    case ACTION_SELECT:
+    {
+        for (size_t i = 0; i < data->entities.len; i++)
+        {
+            rg_entity* player = &data->entities.data[data->player];
+            rg_entity* e = &data->entities.data[i];
+            if (e->type == ENTITY_STAIRS && e->x == player->x
+                && e->y == player->y)
+            {
+                game_next_level(data);
+                return;
+            }
+        }
+
+        {
+            // no stairs
+            const char* fmt = "There are no stairs here.";
+            int len = snprintf(NULL, 0, fmt);
+            char* buf = malloc(sizeof(char) * (len + 1));
+            snprintf(buf, len + 1, fmt);
+            rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
+                                        .text = buf,
+                                        .color = YELLOW };
+            turn_logs_push(&data->logs, &entry);
+        }
+
+        break;
+    }
     case ACTION_ESCAPE:
         action->type = ACTION_QUIT;
         break;
@@ -982,7 +1051,7 @@ void state_inventory_drop_turn(const SDL_Event* event,
     handle_inventory_input(event, action, data);
     switch (action->type)
     {
-    case ACTION_INVENTORY_SELECT:
+    case ACTION_SELECT:
         if (data->prev_state == ST_TURN_PLAYER_DEAD) return;
         if (data->inventory.len == 0) return;
         if (data->inventory.len < action->index) return;
@@ -1023,7 +1092,7 @@ void state_inventory_turn(const SDL_Event* event,
 
     switch (action->type)
     {
-    case ACTION_INVENTORY_SELECT:
+    case ACTION_SELECT:
         if (data->prev_state == ST_TURN_PLAYER_DEAD) return;
         if (data->inventory.len == 0) return;
         if (data->inventory.len < action->index) return;
