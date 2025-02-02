@@ -329,9 +329,9 @@ void map_place_entities(rg_map *m,
             int vals[] = { 10 };
             item_chances[3] = val_from_dungeon_level(m->level, 1, levels, vals);
         }
-        int idx = rand_int_choice_index(ITEM_LEN, item_chances);
+        int idx = rand_int_choice_index(ITEM_LEN - 1, item_chances);
         ASSERT_M(idx >= 0);
-        ASSERT_M(idx < ITEM_LEN);
+        ASSERT_M(idx < ITEM_LEN - 1);
         // int item_chance = RAND_INT(0, 100);
         switch (idx)
         {

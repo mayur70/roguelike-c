@@ -1267,6 +1267,10 @@ void state_inventory_drop_turn(const SDL_Event* event,
         const size_t idx = data->inventory.data[action->index];
         rg_item* item = &data->items.data[idx];
 
+        if (data->player_equipments.main_hand == item ||
+            data->player_equipments.off_hand == item)
+            equipment_toggle_equip(
+              &data->player_equipments, item, NULL, NULL, NULL);
         {
             const char* fmt = "You dropped the %s";
             int len = snprintf(NULL, 0, fmt, item->name);
@@ -1430,4 +1434,109 @@ void state_show_character_turn(const SDL_Event* event,
         break;
     }
     // TODO
+}
+
+void equipment_toggle_equip(rg_player_equipments* e,
+                            rg_item* i,
+                            int* len,
+                            rg_action** actions,
+                            rg_item** items)
+{
+    bool res = len != NULL && actions != NULL && items != NULL;
+    if (res)
+    {
+        *len = 0;
+        *actions = malloc(sizeof(rg_action) * 2);
+        *items = malloc(sizeof(rg_item) * 2);
+    }
+    if (i->equipable.slot == EQUIPMENT_SLOT_MAIN_HAND)
+    {
+        if (e->main_hand == i)
+        {
+            if (res)
+            {
+                items[0] = i;
+                actions[0]->type = ACTION_DEEQUIPPED;
+                *len += 1;
+            }
+            e->main_hand = NULL;
+        }
+        else
+        {
+            if (e->main_hand != NULL && res)
+            {
+                items[0] = e->main_hand;
+                actions[0]->type = ACTION_DEEQUIPPED;
+                *len += 1;
+            }
+
+            if (res)
+            {
+                items[1] = i;
+                actions[1]->type = ACTION_EQUIPPED;
+                *len += 1;
+            }
+            e->main_hand = i;
+        }
+    }
+    else if (i->equipable.slot == EQUIPMENT_SLOT_OFF_HAND)
+    {
+        if (e->off_hand == i)
+        {
+            if (res)
+            {
+                items[0] = i;
+                actions[0]->type = ACTION_DEEQUIPPED;
+                *len += 1;
+            }
+            e->off_hand = NULL;
+        }
+        else
+        {
+            if (e->off_hand != NULL && res)
+            {
+                items[0] = e->off_hand;
+                actions[0]->type = ACTION_DEEQUIPPED;
+                *len += 1;
+            }
+
+            if (res)
+            {
+                items[1] = i;
+                actions[1]->type = ACTION_EQUIPPED;
+                *len += 1;
+            }
+            e->off_hand = i;
+        }
+    }
+}
+
+int equipment_get_max_hp_bonus(rg_player_equipments* e)
+{
+    int b = 0;
+    if (e->main_hand != NULL && e->main_hand->type == ITEM_EQUIPMENT)
+        b += e->main_hand->equipable.max_hp_bonus;
+    if (e->off_hand != NULL && e->off_hand->type == ITEM_EQUIPMENT)
+        b += e->off_hand->equipable.max_hp_bonus;
+    return b;
+}
+
+int equipment_get_power_bonus(rg_player_equipments* e)
+{
+    int b = 0;
+    if (e->main_hand != NULL && e->main_hand->type == ITEM_EQUIPMENT)
+        b += e->main_hand->equipable.power_bonus;
+    if (e->off_hand != NULL && e->off_hand->type == ITEM_EQUIPMENT)
+        b += e->off_hand->equipable.power_bonus;
+    return b;
+}
+
+int equipment_get_defense_bonus(rg_player_equipments* e)
+{
+    int b = 0;
+    if (e->main_hand != NULL && e->main_hand->type == ITEM_EQUIPMENT)
+        b += e->main_hand->equipable.defense_bonus;
+    if (e->off_hand != NULL && e->off_hand->type == ITEM_EQUIPMENT)
+        b += e->off_hand->equipable.defense_bonus;
+    return b;
 }

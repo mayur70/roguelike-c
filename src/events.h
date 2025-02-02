@@ -17,6 +17,8 @@ typedef enum rg_action_type
     ACTION_LEVEL_UP,
     ACTION_SHOW_CHARACTER,
     ACTION_WAIT,
+    ACTION_EQUIPPED,
+    ACTION_DEEQUIPPED,
 } rg_action_type;
 
 typedef enum rg_level_up_option

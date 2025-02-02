@@ -35,6 +35,12 @@ typedef struct rg_player_level
     int level_up_factor;
 } rg_player_level;
 
+typedef struct rg_player_equipments
+{
+    rg_item* main_hand;
+    rg_item* off_hand;
+} rg_player_equipments;
+
 typedef struct rg_game_state_data
 {
     int screen_width;
@@ -66,6 +72,7 @@ typedef struct rg_game_state_data
     rg_items items;
     rg_entity_id player;
     rg_player_level player_level;
+    struct rg_player_equipments player_equipments;
     rg_map game_map;
     rg_fov_map fov_map;
     bool recompute_fov;
@@ -75,6 +82,15 @@ typedef struct rg_game_state_data
     rg_turn_logs logs;
     SDL_Point mouse_position;
 } rg_game_state_data;
+
+void equipment_toggle_equip(rg_player_equipments* e,
+                            struct rg_item* i,
+                            int* len,
+                            rg_action** actions,
+                            struct rg_item** items);
+int equipment_get_max_hp_bonus(rg_player_equipments* e);
+int equipment_get_power_bonus(rg_player_equipments* e);
+int equipment_get_defense_bonus(rg_player_equipments* e);
 
 bool game_state_load_game(rg_game_state_data* data, struct rg_app* app);
 void game_state_create_game(rg_game_state_data* data, struct rg_app* app);
@@ -106,9 +122,9 @@ void state_targeting_turn(const SDL_Event* event,
                           rg_action* action,
                           rg_game_state_data* data);
 void state_level_up_turn(const SDL_Event* event,
-                          rg_action* action,
-                          rg_game_state_data* data);
+                         rg_action* action,
+                         rg_game_state_data* data);
 void state_show_character_turn(const SDL_Event* event,
-                          rg_action* action,
-                          rg_game_state_data* data);
+                               rg_action* action,
+                               rg_game_state_data* data);
 #endif

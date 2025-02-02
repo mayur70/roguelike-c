@@ -15,9 +15,15 @@ typedef enum rg_item_type
     ITEM_LIGHTNING,
     ITEM_FIRE_BALL,
     ITEM_CAST_CONFUSE,
-
+    ITEM_EQUIPMENT,
     ITEM_LEN,
 } rg_item_type;
+
+typedef enum rg_equipment_slot
+{
+    EQUIPMENT_SLOT_MAIN_HAND,
+    EQUIPMENT_SLOT_OFF_HAND,
+} rg_equipment_slot;
 
 typedef struct rg_item
 {
@@ -51,6 +57,13 @@ typedef struct rg_item
             const char targeting_msg[MAX_TRGT_MSG_LEN];
             SDL_Color targeting_msg_color;
         } confuse;
+        struct
+        {
+            rg_equipment_slot slot;
+            int power_bonus;
+            int defense_bonus;
+            int max_hp_bonus;
+        } equipable;
     };
 } rg_item;
 

@@ -90,7 +90,7 @@ void cast_lightning(rg_item* item,
         if (is_dead)
         {
             entity_kill(target, logs);
-            //TODO: add xp
+            // TODO: add xp
         }
         *is_consumed = true;
     }
@@ -169,7 +169,7 @@ void cast_fireball(rg_item* item,
             if (is_dead)
             {
                 entity_kill(e, logs);
-                //TODO: add xp
+                // TODO: add xp
             }
         }
     }
@@ -201,7 +201,6 @@ void cast_confuse(rg_item* item,
         turn_logs_push(logs, &entry);
         return;
     }
-
 
     for (int i = 0; i < entities->len; i++)
     {
@@ -299,8 +298,52 @@ void item_use(rg_item* item,
             char* buf = strdup(item->confuse.targeting_msg);
             rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
                                         .text = buf,
-                                        .color = item->confuse.targeting_msg_color };
+                                        .color =
+                                          item->confuse.targeting_msg_color };
             turn_logs_push(logs, &entry);
+        }
+        break;
+    }
+    case ITEM_EQUIPMENT:
+    {
+        rg_game_state_data* state = data;
+        int len;
+        rg_action* actions;
+        rg_item* items;
+        equipment_toggle_equip(
+          &state->player_equipments, item, &len, &actions, &items);
+
+        for (int i = 0; i < len; i++)
+        {
+            switch (actions[i].type)
+            {
+            case ACTION_EQUIPPED:
+            {
+                const char* fmt = "You equipped the %s";
+                int len = snprintf(NULL, 0, fmt, item->name);
+                char* buf = malloc(sizeof(char) * (len + 1));
+                snprintf(buf, len + 1, fmt, item->name);
+                rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
+                                            .text = buf,
+                                            .color = WHITE };
+                turn_logs_push(logs, &entry);
+                break;
+            }
+            case ACTION_DEEQUIPPED:
+            {
+                const char* fmt = "You dequipped the %s";
+                int len = snprintf(NULL, 0, fmt, item->name);
+                char* buf = malloc(sizeof(char) * (len + 1));
+                snprintf(buf, len + 1, fmt, item->name);
+                rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
+                                            .text = buf,
+                                            .color = WHITE };
+                turn_logs_push(logs, &entry);
+                break;
+            }
+            default:
+                ASSERT_M(false); // invalid
+            }
         }
         break;
     }
