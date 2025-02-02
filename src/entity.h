@@ -54,6 +54,7 @@ typedef struct rg_fighter
     int hp;
     int defence;
     int power;
+    int xp;
 } rg_fighter;
 
 typedef struct rg_entity
@@ -86,11 +87,13 @@ void entity_get_at_loc(rg_entity_array *entities,
 void entity_take_damage(rg_entity *e,
                         int amount,
                         rg_turn_logs *logs,
-                        bool *is_dead);
+                        bool *is_dead,
+                        int *xp);
 void entity_attack(rg_entity *e,
                    rg_entity *target,
                    rg_turn_logs *logs,
-                   rg_entity **dead_entity);
+                   rg_entity **dead_entity,
+                   int *xp);
 void entity_kill(rg_entity *e, rg_turn_logs *logs);
 float entity_get_distance(rg_entity *a, rg_entity *b);
 float entity_distance_to(rg_entity *a, int x, int y);

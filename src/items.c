@@ -85,10 +85,12 @@ void cast_lightning(rg_item* item,
                                     .color = WHITE };
         turn_logs_push(logs, &entry);
         bool is_dead;
-        entity_take_damage(target, damage, logs, &is_dead);
+        int xp;
+        entity_take_damage(target, damage, logs, &is_dead, &xp);
         if (is_dead)
         {
             entity_kill(target, logs);
+            //TODO: add xp
         }
         *is_consumed = true;
     }
@@ -162,10 +164,12 @@ void cast_fireball(rg_item* item,
                                         .color = ORANGE };
             turn_logs_push(logs, &entry);
             bool is_dead;
-            entity_take_damage(e, damage, logs, &is_dead);
+            int xp;
+            entity_take_damage(e, damage, logs, &is_dead, &xp);
             if (is_dead)
             {
                 entity_kill(e, logs);
+                //TODO: add xp
             }
         }
     }

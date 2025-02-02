@@ -19,7 +19,7 @@ const char* fmt_entity_len = "entity_len=%zu";
 const char* fmt_entity = "entity pos=[%d,%d] ch=%c color=[%hhu,%hhu,%hhu,%hhu]";
 const char* fmt_entity_name = " name='%s' ";
 const char* fmt_entity_rem = "blocks=%d type=%d state=[%d, %ld] "
-                             "fighter=[%d,%d,%d,%d] render_order=%d";
+                             "fighter=[%d,%d,%d,%d,%d] render_order=%d";
 
 const char* fmt_item_len = "item_len=%zu";
 const char* fmt_item = "item pos=[%d,%d] ch=%c color=[%hhu,%hhu,%hhu,%hhu]";
@@ -108,6 +108,7 @@ void entity_save(rg_entity* e, FILE* fp)
             e->fighter.hp,
             e->fighter.defence,
             e->fighter.power,
+            e->fighter.xp,
             e->render_order);
 }
 
@@ -189,8 +190,9 @@ void entity_load(rg_entity* e, const char* buf)
                    &e->fighter.hp,
                    &e->fighter.defence,
                    &e->fighter.power,
+                   &e->fighter.xp,
                    &e->render_order);
-    ASSERT_M(ret == 9);
+    ASSERT_M(ret == 10);
     e->blocks = blocks;
 }
 
@@ -322,12 +324,12 @@ static char* inventory_load(rg_inventory* iv, char* buf)
     return line;
 }
 
-void tile_save(rg_tile* t, FILE* fp)
+static void tile_save(rg_tile* t, FILE* fp)
 {
     fprintf(fp, fmt_tile, t->blocked, t->block_sight, t->explored);
 }
 
-void game_map_save(rg_map* m, FILE* fp)
+static void game_map_save(rg_map* m, FILE* fp)
 {
     fprintf(fp, fmt_game_map, m->width, m->height, m->level);
     fprintf(fp, "\n");
@@ -340,7 +342,7 @@ void game_map_save(rg_map* m, FILE* fp)
     }
 }
 
-char* game_map_load(rg_map* m, char* buf)
+static char* game_map_load(rg_map* m, char* buf)
 {
     memset(m, sizeof(*m), 0);
     int ret;

@@ -103,8 +103,8 @@ void map_create(rg_map *m,
         memcpy(&rooms.data[rooms.len], &new_room, sizeof(SDL_Rect));
         rooms.len++;
     }
-    
-    //Stairs
+
+    // Stairs
     SDL_Rect last_room = rooms.data[rooms.len - 1];
     ARRAY_PUSH(entities,
                ((rg_entity){
@@ -210,7 +210,9 @@ void map_place_entities(rg_map *m,
         if (!valid) continue;
         if (RAND_INT(0, 100) < 80)
         {
-            rg_fighter fighter = { .hp = 10, .defence = 0, .power = 3 };
+            rg_fighter fighter = {
+                .hp = 10, .defence = 0, .power = 3, .xp = 35
+            };
             ARRAY_PUSH(entities,
                        ((rg_entity){
                          .x = x,
@@ -227,7 +229,9 @@ void map_place_entities(rg_map *m,
         }
         else
         {
-            rg_fighter fighter = { .hp = 16, .defence = 1, .power = 4 };
+            rg_fighter fighter = {
+                .hp = 16, .defence = 1, .power = 4, .xp = 100
+            };
             ARRAY_PUSH(entities,
                        ((rg_entity){
                          .x = x,

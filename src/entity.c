@@ -39,24 +39,25 @@ void entity_get_at_loc(rg_entity_array* entities,
 void entity_take_damage(rg_entity* e,
                         int amount,
                         rg_turn_logs* logs,
-                        bool* is_dead)
+                        bool* is_dead,
+                        int* xp)
 {
     *is_dead = false;
+    *xp = 0;
     e->fighter.hp -= amount;
 
     if (e->fighter.hp <= 0)
     {
-        // rg_turn_log_entry entry = { .type = TURN_LOG_DEAD,
-        //                           .text = strdup(e->name) };
-        // turn_logs_push(logs, &entry);
         *is_dead = true;
+        *xp = e->fighter.xp;
     }
 }
 
 void entity_attack(rg_entity* e,
                    rg_entity* target,
                    rg_turn_logs* logs,
-                   rg_entity** dead_entity)
+                   rg_entity** dead_entity,
+                   int* xp)
 {
     ASSERT_M(dead_entity != NULL);
     *dead_entity = NULL;
@@ -65,7 +66,7 @@ void entity_attack(rg_entity* e,
     if (damage > 0)
     {
         bool is_dead;
-        entity_take_damage(target, damage, logs, &is_dead);
+        entity_take_damage(target, damage, logs, &is_dead, xp);
 
         const char* fmt = "%s attacks %s for %d hit points";
 

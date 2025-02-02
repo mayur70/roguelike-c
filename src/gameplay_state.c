@@ -10,9 +10,28 @@
 #include "astar.h"
 #include "color.h"
 #include "savefile.h"
+#include "ui.h"
 
 #define SAVEFILE_NAME "savefile.data"
 //------- internal functions ------------//
+
+static int player_level_exp_to_next_level(rg_player_level* level)
+{
+    return level->level_up_base + level->current_level * level->level_up_factor;
+}
+
+static bool player_level_add_xp(rg_player_level* level, int xp)
+{
+    level->current_xp += xp;
+    int xp_to_next_level = player_level_exp_to_next_level(level);
+    if (level->current_xp > xp_to_next_level)
+    {
+        level->current_xp -= xp_to_next_level;
+        level->current_level++;
+        return true;
+    }
+    return false;
+}
 
 static void entity_move_towards(rg_entity* e,
                                 int x,
@@ -102,7 +121,10 @@ static void basic_monster_update(rg_entity* e,
             entity_move_astar(e, target, game_map, entities);
         }
         else if (target->fighter.hp > 0)
-            entity_attack(e, target, logs, dead_entity);
+        {
+            int xp; // ignore xp of enemies
+            entity_attack(e, target, logs, dead_entity, &xp);
+        }
     }
 }
 
@@ -135,13 +157,53 @@ static void handle_player_movement(const rg_action* action,
         else
         {
             rg_entity* dead_entity;
-            entity_attack(player, target, &data->logs, &dead_entity);
+            int xp;
+            entity_attack(player, target, &data->logs, &dead_entity, &xp);
             if (dead_entity != NULL)
             {
                 entity_kill(dead_entity, &data->logs);
                 if (dead_entity == player)
                 {
                     data->game_state = ST_TURN_PLAYER_DEAD;
+                }
+                else
+                {
+                    if (xp > 0)
+                    {
+                        bool leveled_up =
+                          player_level_add_xp(&data->player_level, xp);
+
+                        {
+                            const char* fmt = "You gain %d experience points.";
+                            int len = snprintf(NULL, 0, fmt, xp);
+                            char* buf = malloc(sizeof(char) * (len + 1));
+                            snprintf(buf, len, fmt, xp);
+                            rg_turn_log_entry entry = { .type =
+                                                          TURN_LOG_MESSAGE,
+                                                        .text = buf,
+                                                        .color = WHITE };
+                            turn_logs_push(&data->logs, &entry);
+                        }
+                        if (leveled_up)
+                        {
+                            const char* fmt = "Your battle skills grow "
+                                              "stronger! You reached level %d!";
+                            int len = snprintf(
+                              NULL, 0, fmt, data->player_level.current_level);
+                            char* buf = malloc(sizeof(char) * (len + 1));
+                            snprintf(
+                              buf, len, fmt, data->player_level.current_level);
+                            rg_turn_log_entry entry = { .type =
+                                                          TURN_LOG_MESSAGE,
+                                                        .text = buf,
+                                                        .color = YELLOW };
+                            turn_logs_push(&data->logs, &entry);
+
+                            data->prev_state = data->game_state;
+                            data->game_state = ST_LEVEL_UP;
+                            return;
+                        }
+                    }
                 }
             }
         }
@@ -668,10 +730,15 @@ void game_state_create_game(rg_game_state_data* data, rg_app* app)
                }));
     data->player = data->entities.len - 1;
 
+    data->player_level.current_level = 1;
+    data->player_level.current_xp = 20;
+    data->player_level.level_up_base = 200;
+    data->player_level.level_up_factor = 150;
+
     turn_logs_create(&data->logs, data->message_width, data->message_height);
 
     game_level_create(data, 1);
-    
+
     data->mouse_position.x = 0;
     data->mouse_position.y = 0;
 }
@@ -728,6 +795,9 @@ void game_state_update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
         break;
     case ST_TARGETING:
         state_targeting_turn(event, &action, data);
+        break;
+    case ST_LEVEL_UP:
+        state_level_up_turn(event, &action, data);
         break;
     default:
         break;
@@ -850,7 +920,7 @@ void game_state_draw(rg_app* app, rg_game_state_data* data)
         const char* fmt = "Dungeon level: %d";
         int len = snprintf(NULL, 0, fmt, data->game_map.level);
         char* buf = malloc(sizeof(char) * (len + 1));
-        snprintf(buf, len + 1, fmt, data->game_map.level);   
+        snprintf(buf, len + 1, fmt, data->game_map.level);
         console_print_txt(&data->panel, 1, 3, buf, WHITE);
         free(buf);
     }
@@ -900,6 +970,40 @@ void game_state_draw(rg_app* app, rg_game_state_data* data)
                        &menu_height);
         console_end(&data->menu);
     }
+    else if (data->game_state == ST_LEVEL_UP)
+    {
+        console_begin(&data->menu);
+        console_clear(&data->menu, ((SDL_Color){ 0, 0, 0, 0 }));
+        const char* header = "Level up! Choose a stat to raise:";
+        rg_entity* player = &data->entities.data[data->player];
+        char** options = malloc(sizeof(char*) * 3);
+        {
+            const char* fmt = "Constitution (+20 HP, from %d)";
+            int len = snprintf(NULL, 0, fmt, player->fighter.max_hp);
+            options[0] = (char*)malloc(sizeof(char) * (len + 1));
+            snprintf(options[0], len, fmt, player->fighter.max_hp);
+            options[0][len] = '\0';
+        }
+        {
+            const char* fmt = "Strength (+1 attack, from %d)";
+            int len = snprintf(NULL, 0, fmt, player->fighter.power);
+            options[1] = (char*)malloc(sizeof(char) * (len + 1));
+            snprintf(options[1], len, fmt, player->fighter.power);
+            options[1][len] = '\0';
+        }
+        {
+            const char* fmt = "Agility (+1 defense, from %d)";
+            int len = snprintf(NULL, 0, fmt, player->fighter.defence);
+            options[2] = (char*)malloc(sizeof(char) * (len + 1));
+            snprintf(options[2], len, fmt, player->fighter.defence);
+            options[2][len] = '\0';
+        }
+        menu_draw(&data->menu, header, 3, options, 40, &menu_height);
+        for (int i = 0; i < 3; i++) free(options[i]);
+        free(options);
+
+        console_end(&data->menu);
+    }
 
     ///-----Screen/Window---------------
     SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 255);
@@ -924,7 +1028,8 @@ void game_state_draw(rg_app* app, rg_game_state_data* data)
     }
 
     if (data->game_state == ST_SHOW_INVENTORY ||
-        data->game_state == ST_DROP_INVENTORY)
+        data->game_state == ST_DROP_INVENTORY ||
+        data->game_state== ST_LEVEL_UP)
     {
         int x =
           (int)((data->screen_width / (double)2) - (menu_width / (double)2));
@@ -1013,8 +1118,8 @@ void state_player_turn(const SDL_Event* event,
         {
             rg_entity* player = &data->entities.data[data->player];
             rg_entity* e = &data->entities.data[i];
-            if (e->type == ENTITY_STAIRS && e->x == player->x
-                && e->y == player->y)
+            if (e->type == ENTITY_STAIRS && e->x == player->x &&
+                e->y == player->y)
             {
                 game_next_level(data);
                 return;
@@ -1158,5 +1263,48 @@ void state_targeting_turn(const SDL_Event* event,
     case ACTION_ESCAPE:
         data->game_state = data->prev_state;
         break;
+    }
+}
+
+void state_level_up_turn(const SDL_Event* event,
+                         rg_action* action,
+                         rg_game_state_data* data)
+{
+    action->type = ACTION_NONE;
+    if (event->type != SDL_KEYDOWN) return;
+    switch (event->key.keysym.sym)
+    {
+    case SDLK_a:
+        action->type = ACTION_LEVEL_UP;
+        action->level_up = LEVEL_UP_OPTION_HP;
+        break;
+    case SDLK_b:
+        action->type = ACTION_LEVEL_UP;
+        action->level_up = LEVEL_UP_OPTION_STR;
+        break;
+    case SDLK_c:
+        action->type = ACTION_LEVEL_UP;
+        action->level_up = LEVEL_UP_OPTION_DEF;
+        break;
+    }
+    if (action->type == ACTION_LEVEL_UP)
+    {
+        rg_entity* player = &data->entities.data[data->player];
+        switch (action->level_up)
+        {
+        case LEVEL_UP_OPTION_HP:
+            player->fighter.max_hp += 20;
+            player->fighter.hp += 20;
+            break;
+        case LEVEL_UP_OPTION_STR:
+            player->fighter.power += 1;
+            break;
+        case LEVEL_UP_OPTION_DEF:
+            player->fighter.defence += 1;
+            break;
+        default:
+            ASSERT_M(false); // invalid data
+        }
+        data->game_state = data->prev_state;
     }
 }

@@ -3,7 +3,6 @@
 
 #include <SDL.h>
 
-
 typedef enum rg_action_type
 {
     ACTION_NONE,
@@ -15,7 +14,15 @@ typedef enum rg_action_type
     ACTION_SELECT,
     ACTION_DROP_INVENTORY,
     ACTION_TARGET_SELECTED,
+    ACTION_LEVEL_UP,
 } rg_action_type;
+
+typedef enum rg_level_up_option
+{
+    LEVEL_UP_OPTION_HP,
+    LEVEL_UP_OPTION_STR,
+    LEVEL_UP_OPTION_DEF,
+} rg_level_up_option;
 
 typedef struct rg_action
 {
@@ -28,6 +35,7 @@ typedef struct rg_action
             int dx, dy;
         };
         int index;
+        rg_level_up_option level_up;
     };
 } rg_action;
 

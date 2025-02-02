@@ -23,7 +23,16 @@ typedef enum rg_game_state
     ST_SHOW_INVENTORY,
     ST_DROP_INVENTORY,
     ST_TARGETING,
+    ST_LEVEL_UP,
 } rg_game_state;
+
+typedef struct rg_player_level
+{
+    int current_level;
+    int current_xp;
+    int level_up_base;
+    int level_up_factor;
+} rg_player_level;
 
 typedef struct rg_game_state_data
 {
@@ -54,6 +63,7 @@ typedef struct rg_game_state_data
     rg_entity_array entities;
     rg_items items;
     rg_entity_id player;
+    rg_player_level player_level;
     rg_map game_map;
     rg_fov_map fov_map;
     bool recompute_fov;
@@ -91,6 +101,9 @@ void state_inventory_drop_turn(const SDL_Event* event,
                                rg_game_state_data* data);
 
 void state_targeting_turn(const SDL_Event* event,
+                          rg_action* action,
+                          rg_game_state_data* data);
+void state_level_up_turn(const SDL_Event* event,
                           rg_action* action,
                           rg_game_state_data* data);
 #endif
