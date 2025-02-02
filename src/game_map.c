@@ -179,6 +179,18 @@ void map_create_v_tunnel(rg_map *m, int y1, int y2, int x)
     }
 }
 
+static int val_from_dungeon_level(int current_level,
+                                  int len,
+                                  int *levels,
+                                  int *values)
+{
+    for (int i = len - 1; i >= 0; i--)
+    {
+        if (current_level >= levels[i]) return values[i];
+    }
+    return 0;
+}
+
 void map_place_entities(rg_map *m,
                         SDL_Rect *room,
                         rg_entity_array *entities,
@@ -188,6 +200,11 @@ void map_place_entities(rg_map *m,
 {
 
     int num_monsters = RAND_INT(0, max_monsters_per_room);
+    {
+        int levels[] = { 1, 4, 6 };
+        int vals[] = { 2, 3, 5 };
+        num_monsters = val_from_dungeon_level(m->level, 3, levels, vals);
+    }
     for (int i = 0; i < num_monsters; i++)
     {
         // FIXME: bug in random max limit???
@@ -210,7 +227,14 @@ void map_place_entities(rg_map *m,
 
         if (!valid) continue;
 
-        int monster_chances[] = { 80, 20 };
+        int troll_chances = 0;
+        {
+            int levels[] = { 3, 5, 7 };
+            int vals[] = { 15, 30, 60 };
+            troll_chances = val_from_dungeon_level(m->level, 3, levels, vals);
+        }
+
+        int monster_chances[] = { 80, troll_chances };
         int midx = rand_int_choice_index(MONSTER_LEN, monster_chances);
         ASSERT_M(midx >= 0);
         ASSERT_M(midx < MONSTER_LEN);
@@ -219,7 +243,7 @@ void map_place_entities(rg_map *m,
         case MONSTER_ORC:
         {
             rg_fighter fighter = {
-                .hp = 10, .defence = 0, .power = 3, .xp = 35
+                .hp = 20, .defence = 0, .power = 4, .xp = 35
             };
             ARRAY_PUSH(entities,
                        ((rg_entity){
@@ -239,7 +263,7 @@ void map_place_entities(rg_map *m,
         case MONSTER_TROLL:
         {
             rg_fighter fighter = {
-                .hp = 16, .defence = 1, .power = 4, .xp = 100
+                .hp = 30, .defence = 2, .power = 8, .xp = 100
             };
             ARRAY_PUSH(entities,
                        ((rg_entity){
@@ -262,6 +286,11 @@ void map_place_entities(rg_map *m,
         }
     }
     int num_items = RAND_INT(0, max_items_per_room);
+    {
+        int levels[] = { 1, 4 };
+        int vals[] = { 1, 2 };
+        num_items = val_from_dungeon_level(m->level, 2, levels, vals);
+    }
     for (int i = 0; i < num_items; i++)
     {
         int x = RAND_INT(room->x + 1, room->x + room->w - 3);
@@ -283,7 +312,23 @@ void map_place_entities(rg_map *m,
 
         if (!valid) continue;
 
-        int item_chances[] = { 70, 10, 10, 10 };
+        int item_chances[4] = { 0 };
+        item_chances[0] = 35;
+        {
+            int levels[] = { 4 };
+            int vals[] = { 25 };
+            item_chances[1] = val_from_dungeon_level(m->level, 1, levels, vals);
+        }
+        {
+            int levels[] = { 6 };
+            int vals[] = { 25 };
+            item_chances[2] = val_from_dungeon_level(m->level, 1, levels, vals);
+        }
+        {
+            int levels[] = { 2 };
+            int vals[] = { 10 };
+            item_chances[3] = val_from_dungeon_level(m->level, 1, levels, vals);
+        }
         int idx = rand_int_choice_index(ITEM_LEN, item_chances);
         ASSERT_M(idx >= 0);
         ASSERT_M(idx < ITEM_LEN);
@@ -300,12 +345,12 @@ void map_place_entities(rg_map *m,
                          .color = LIGHTEST_VIOLET,
                          .name = "Healing Potion",
                          .type = ITEM_POTION_HEAL,
-                         .heal = { .amount = 4 },
+                         .heal = { .amount = 40 },
                          .visible_on_map = true,
                        }));
             break;
         }
-        case ITEM_LIGHTNING:
+        case ITEM_FIRE_BALL:
         {
             ARRAY_PUSH(items,
                        ((rg_item){
@@ -316,7 +361,7 @@ void map_place_entities(rg_map *m,
                          .name = "Fireball Scroll",
                          .type = ITEM_FIRE_BALL,
                          .fireball = {
-                             .damage = 12,
+                             .damage = 25,
                              .radius = 3,
                              .targeting_msg = "Left-click a target tile for the fireball, or right-click to cancel.",
                              .targeting_msg_color = CYAN,
@@ -325,7 +370,7 @@ void map_place_entities(rg_map *m,
                        }));
             break;
         }
-        case ITEM_FIRE_BALL:
+        case ITEM_CAST_CONFUSE:
         {
             ARRAY_PUSH(items,
                        ((rg_item){
@@ -344,7 +389,7 @@ void map_place_entities(rg_map *m,
                        }));
             break;
         }
-        case ITEM_CAST_CONFUSE:
+        case ITEM_LIGHTNING:
         {
             ARRAY_PUSH(items,
                        ((rg_item){
@@ -355,8 +400,8 @@ void map_place_entities(rg_map *m,
                          .name = "Lightning Scroll",
                          .type = ITEM_LIGHTNING,
                          .lightning = {
-                             .damage = 20,
-                             .maximum_range = 4,
+                             .damage = 40,
+                             .maximum_range = 5,
                              },
                          .visible_on_map = true,
                        }));
