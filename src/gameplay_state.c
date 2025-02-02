@@ -413,6 +413,12 @@ static void handle_player_input(const SDL_Event* event,
         case SDLK_d:
             action->type = ACTION_DROP_INVENTORY;
             break;
+        case SDLK_c:
+            action->type = ACTION_SHOW_CHARACTER;
+            break;
+        case SDLK_z:
+            action->type = ACTION_WAIT;
+            break;
         case SDLK_ESCAPE:
             action->type = ACTION_ESCAPE;
             break;
@@ -668,6 +674,12 @@ static void with_defaults(rg_game_state_data* data, rg_app* app)
                    data->screen_height,
                    app->terminal.tileset);
 
+    console_create(&data->character_screen,
+                   app->renderer,
+                   data->screen_width,
+                   data->screen_height,
+                   app->terminal.tileset);
+
     inventory_create(&data->inventory, 26);
 }
 
@@ -752,6 +764,7 @@ void game_state_destroy(rg_game_state_data* data)
     console_destroy(&data->menu);
     console_destroy(&data->console);
     console_destroy(&data->panel);
+    console_destroy(&data->character_screen);
     // terminal_destroy(&data->terminal);
     // tileset_destroy(&data->tileset);
 }
@@ -798,6 +811,9 @@ void game_state_update(rg_app* app, SDL_Event* event, rg_game_state_data* data)
         break;
     case ST_LEVEL_UP:
         state_level_up_turn(event, &action, data);
+        break;
+    case ST_SHOW_CHARACTER:
+        state_show_character_turn(event, &action, data);
         break;
     default:
         break;
@@ -941,6 +957,7 @@ void game_state_draw(rg_app* app, rg_game_state_data* data)
     //-----Menu----------------
     int menu_height;
     int menu_width = 50;
+    int show_char_width = 30, show_char_height = 10;
     if (data->game_state == ST_SHOW_INVENTORY)
     {
         console_begin(&data->menu);
@@ -981,21 +998,21 @@ void game_state_draw(rg_app* app, rg_game_state_data* data)
             const char* fmt = "Constitution (+20 HP, from %d)";
             int len = snprintf(NULL, 0, fmt, player->fighter.max_hp);
             options[0] = (char*)malloc(sizeof(char) * (len + 1));
-            snprintf(options[0], len, fmt, player->fighter.max_hp);
+            snprintf(options[0], len + 1, fmt, player->fighter.max_hp);
             options[0][len] = '\0';
         }
         {
             const char* fmt = "Strength (+1 attack, from %d)";
             int len = snprintf(NULL, 0, fmt, player->fighter.power);
             options[1] = (char*)malloc(sizeof(char) * (len + 1));
-            snprintf(options[1], len, fmt, player->fighter.power);
+            snprintf(options[1], len + 1, fmt, player->fighter.power);
             options[1][len] = '\0';
         }
         {
             const char* fmt = "Agility (+1 defense, from %d)";
             int len = snprintf(NULL, 0, fmt, player->fighter.defence);
             options[2] = (char*)malloc(sizeof(char) * (len + 1));
-            snprintf(options[2], len, fmt, player->fighter.defence);
+            snprintf(options[2], len + 1, fmt, player->fighter.defence);
             options[2][len] = '\0';
         }
         menu_draw(&data->menu, header, 3, options, 40, &menu_height);
@@ -1003,6 +1020,63 @@ void game_state_draw(rg_app* app, rg_game_state_data* data)
         free(options);
 
         console_end(&data->menu);
+    }
+    else if (data->game_state == ST_SHOW_CHARACTER)
+    {
+        console_begin(&data->character_screen);
+        console_clear(&data->character_screen, ((SDL_Color){ 0, 0, 0, 0 }));
+        console_print_txt(
+          &data->character_screen, 0, 1, "Character Information", WHITE);
+        {
+            const char* fmt = "Level: %d";
+            int len = snprintf(NULL, 0, fmt, data->player_level.current_level);
+            char* buf = (char*)malloc(sizeof(char) * (len + 1));
+            snprintf(buf, len + 1, fmt, data->player_level.current_level);
+            console_print_txt(&data->character_screen, 0, 2, buf, WHITE);
+            free(buf);
+        }
+        {
+            const char* fmt = "Experience: %d";
+            int len = snprintf(NULL, 0, fmt, data->player_level.current_xp);
+            char* buf = (char*)malloc(sizeof(char) * (len + 1));
+            snprintf(buf, len + 1, fmt, data->player_level.current_xp);
+            console_print_txt(&data->character_screen, 0, 3, buf, WHITE);
+            free(buf);
+        }
+        {
+            int xptl = player_level_exp_to_next_level(&data->player_level);
+            const char* fmt = "Experience to Level: %d";
+            int len = snprintf(NULL, 0, fmt, xptl);
+            char* buf = (char*)malloc(sizeof(char) * (len + 1));
+            snprintf(buf, len + 1, fmt, xptl);
+            console_print_txt(&data->character_screen, 0, 4, buf, WHITE);
+            free(buf);
+        }
+        {
+            const char* fmt = "Maximum HP: %d";
+            int len = snprintf(NULL, 0, fmt, player->fighter.max_hp);
+            char* buf = (char*)malloc(sizeof(char) * (len + 1));
+            snprintf(buf, len + 1, fmt, player->fighter.max_hp);
+            console_print_txt(&data->character_screen, 0, 6, buf, WHITE);
+            free(buf);
+        }
+        {
+            const char* fmt = "Attack HP: %d";
+            int len = snprintf(NULL, 0, fmt, player->fighter.power);
+            char* buf = (char*)malloc(sizeof(char) * (len + 1));
+            snprintf(buf, len + 1, fmt, player->fighter.power);
+            console_print_txt(&data->character_screen, 0, 7, buf, WHITE);
+            free(buf);
+        }
+        {
+            const char* fmt = "Defense HP: %d";
+            int len = snprintf(NULL, 0, fmt, player->fighter.defence);
+            char* buf = (char*)malloc(sizeof(char) * (len + 1));
+            snprintf(buf, len + 1, fmt, player->fighter.defence);
+            console_print_txt(&data->character_screen, 0, 8, buf, WHITE);
+            free(buf);
+        }
+        console_end(&data->character_screen);
     }
 
     ///-----Screen/Window---------------
@@ -1029,7 +1103,7 @@ void game_state_draw(rg_app* app, rg_game_state_data* data)
 
     if (data->game_state == ST_SHOW_INVENTORY ||
         data->game_state == ST_DROP_INVENTORY ||
-        data->game_state== ST_LEVEL_UP)
+        data->game_state == ST_LEVEL_UP)
     {
         int x =
           (int)((data->screen_width / (double)2) - (menu_width / (double)2));
@@ -1051,6 +1125,29 @@ void game_state_draw(rg_app* app, rg_game_state_data* data)
         SDL_RenderDrawRect(app->renderer, &r);
 
         console_flush(&data->menu, x, y);
+    }
+    if (data->game_state == ST_SHOW_CHARACTER)
+    {
+        int x = (int)((data->screen_width / (double)2) -
+                      (show_char_width / (double)2));
+        int y = (int)((data->screen_height / (double)2) -
+                      (show_char_height / (double)2));
+        SDL_Rect r = { x * data->menu.tileset->tile_size,
+                       y * data->menu.tileset->tile_size,
+                       show_char_width * data->menu.tileset->tile_size,
+                       show_char_height * data->menu.tileset->tile_size };
+
+        // SDL_SetRenderDrawBlendMode(app->renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(app->renderer, 0, 0, 0, 255);
+        SDL_RenderFillRect(app->renderer, &r);
+        r.x -= 1;
+        r.y -= 1;
+        r.w += 2;
+        r.h += 2;
+        SDL_SetRenderDrawColor(app->renderer, 255, 255, 255, 255);
+        SDL_RenderDrawRect(app->renderer, &r);
+
+        console_flush(&data->character_screen, x, y);
     }
     SDL_RenderPresent(app->renderer);
 
@@ -1112,6 +1209,9 @@ void state_player_turn(const SDL_Event* event,
     case ACTION_DROP_INVENTORY:
         state_inventory_drop_turn(event, action, data);
         break;
+    case ACTION_SHOW_CHARACTER:
+        state_show_character_turn(event, action, data);
+        break;
     case ACTION_SELECT:
     {
         for (size_t i = 0; i < data->entities.len; i++)
@@ -1140,6 +1240,9 @@ void state_player_turn(const SDL_Event* event,
 
         break;
     }
+    case ACTION_WAIT:
+        data->game_state = ST_TURN_ENEMY;
+        break;
     case ACTION_ESCAPE:
         action->type = ACTION_QUIT;
         break;
@@ -1307,4 +1410,24 @@ void state_level_up_turn(const SDL_Event* event,
         }
         data->game_state = data->prev_state;
     }
+}
+
+void state_show_character_turn(const SDL_Event* event,
+                               rg_action* action,
+                               rg_game_state_data* data)
+{
+    if (data->game_state != ST_SHOW_CHARACTER)
+    {
+        data->prev_state = data->game_state;
+        data->game_state = ST_SHOW_CHARACTER;
+        return;
+    }
+    if (event->type != SDL_KEYDOWN) return;
+    switch (event->key.keysym.sym)
+    {
+    case SDLK_ESCAPE:
+        data->game_state = data->prev_state;
+        break;
+    }
+    // TODO
 }

@@ -15,6 +15,8 @@ typedef enum rg_action_type
     ACTION_DROP_INVENTORY,
     ACTION_TARGET_SELECTED,
     ACTION_LEVEL_UP,
+    ACTION_SHOW_CHARACTER,
+    ACTION_WAIT,
 } rg_action_type;
 
 typedef enum rg_level_up_option

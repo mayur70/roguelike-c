@@ -24,6 +24,7 @@ typedef enum rg_game_state
     ST_DROP_INVENTORY,
     ST_TARGETING,
     ST_LEVEL_UP,
+    ST_SHOW_CHARACTER,
 } rg_game_state;
 
 typedef struct rg_player_level
@@ -60,6 +61,7 @@ typedef struct rg_game_state_data
     rg_console console;
     rg_console panel;
     rg_console menu;
+    rg_console character_screen;
     rg_entity_array entities;
     rg_items items;
     rg_entity_id player;
@@ -104,6 +106,9 @@ void state_targeting_turn(const SDL_Event* event,
                           rg_action* action,
                           rg_game_state_data* data);
 void state_level_up_turn(const SDL_Event* event,
+                          rg_action* action,
+                          rg_game_state_data* data);
+void state_show_character_turn(const SDL_Event* event,
                           rg_action* action,
                           rg_game_state_data* data);
 #endif
