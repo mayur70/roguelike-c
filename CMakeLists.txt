@@ -27,6 +27,7 @@ add_executable(
     src/savefile.c
     src/mainmenu_state.c
     src/ui.c
+    src/types.c
 )
 
 # target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address)

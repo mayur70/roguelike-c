@@ -186,6 +186,7 @@ void map_place_entities(rg_map *m,
                         rg_items *items,
                         int max_items_per_room)
 {
+
     int num_monsters = RAND_INT(0, max_monsters_per_room);
     for (int i = 0; i < num_monsters; i++)
     {
@@ -208,7 +209,14 @@ void map_place_entities(rg_map *m,
         }
 
         if (!valid) continue;
-        if (RAND_INT(0, 100) < 80)
+
+        int monster_chances[] = { 80, 20 };
+        int midx = rand_int_choice_index(MONSTER_LEN, monster_chances);
+        ASSERT_M(midx >= 0);
+        ASSERT_M(midx < MONSTER_LEN);
+        switch (midx)
+        {
+        case MONSTER_ORC:
         {
             rg_fighter fighter = {
                 .hp = 10, .defence = 0, .power = 3, .xp = 35
@@ -226,8 +234,9 @@ void map_place_entities(rg_map *m,
                          .state.type = ENTITY_STATE_FOLLOW_PLAYER,
                          .render_order = RENDER_ORDER_ACTOR,
                        }));
+            break;
         }
-        else
+        case MONSTER_TROLL:
         {
             rg_fighter fighter = {
                 .hp = 16, .defence = 1, .power = 4, .xp = 100
@@ -245,9 +254,13 @@ void map_place_entities(rg_map *m,
                          .state.type = ENTITY_STATE_FOLLOW_PLAYER,
                          .render_order = RENDER_ORDER_ACTOR,
                        }));
+            break;
+        }
+        default:
+            ASSERT_M(false); // invalid option
+            break;
         }
     }
-
     int num_items = RAND_INT(0, max_items_per_room);
     for (int i = 0; i < num_items; i++)
     {
@@ -270,8 +283,14 @@ void map_place_entities(rg_map *m,
 
         if (!valid) continue;
 
-        int item_chance = RAND_INT(0, 100);
-        if (item_chance < 70)
+        int item_chances[] = { 70, 10, 10, 10 };
+        int idx = rand_int_choice_index(ITEM_LEN, item_chances);
+        ASSERT_M(idx >= 0);
+        ASSERT_M(idx < ITEM_LEN);
+        // int item_chance = RAND_INT(0, 100);
+        switch (idx)
+        {
+        case ITEM_POTION_HEAL:
         {
             ARRAY_PUSH(items,
                        ((rg_item){
@@ -284,8 +303,9 @@ void map_place_entities(rg_map *m,
                          .heal = { .amount = 4 },
                          .visible_on_map = true,
                        }));
+            break;
         }
-        else if (item_chance < 80)
+        case ITEM_LIGHTNING:
         {
             ARRAY_PUSH(items,
                        ((rg_item){
@@ -303,8 +323,9 @@ void map_place_entities(rg_map *m,
                              },
                          .visible_on_map = true,
                        }));
+            break;
         }
-        else if (item_chance < 90)
+        case ITEM_FIRE_BALL:
         {
             ARRAY_PUSH(items,
                        ((rg_item){
@@ -321,8 +342,9 @@ void map_place_entities(rg_map *m,
                              },
                          .visible_on_map = true,
                        }));
+            break;
         }
-        else
+        case ITEM_CAST_CONFUSE:
         {
             ARRAY_PUSH(items,
                        ((rg_item){
@@ -338,6 +360,11 @@ void map_place_entities(rg_map *m,
                              },
                          .visible_on_map = true,
                        }));
+            break;
+        }
+        default:
+            ASSERT_M(false); // invalid option
+            break;
         }
     }
 }

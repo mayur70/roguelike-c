@@ -18,6 +18,14 @@ typedef enum rg_entity_state_type
     ENTITY_STATE_CONFUSED,
 } rg_entity_state_type;
 
+typedef enum rg_monster_type
+{
+    MONSTER_ORC,
+    MONSTER_TROLL,
+
+    MONSTER_LEN,
+} rg_monster_type;
+
 typedef struct rg_entity_state
 {
     rg_entity_state_type type;

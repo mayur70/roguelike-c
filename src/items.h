@@ -15,6 +15,8 @@ typedef enum rg_item_type
     ITEM_LIGHTNING,
     ITEM_FIRE_BALL,
     ITEM_CAST_CONFUSE,
+
+    ITEM_LEN,
 } rg_item_type;
 
 typedef struct rg_item

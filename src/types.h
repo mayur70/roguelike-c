@@ -35,4 +35,8 @@
     } while (0)
 #endif
 
+
+int rand_int_choice_index(int len, int* data);
+
+
 #endif
