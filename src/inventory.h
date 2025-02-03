@@ -5,6 +5,7 @@
 
 #include "console.h"
 #include "entity.h"
+#include "equipment.h"
 #include "items.h"
 #include "turn_log.h"
 
@@ -29,6 +30,7 @@ void inventory_draw(rg_console* c,
                     const char* header,
                     rg_items* items,
                     rg_inventory* inventory,
+                    rg_player_equipments* player_equipments,
                     int width,
                     int* height);
 #endif

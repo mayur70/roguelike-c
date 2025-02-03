@@ -99,6 +99,7 @@ static void entity_move_astar(rg_entity* e,
 
 static void basic_monster_update(rg_entity* e,
                                  rg_entity* target,
+                                 rg_player_equipments* player_equipments,
                                  rg_fov_map* fov_map,
                                  rg_map* game_map,
                                  rg_entity_array* entities,
@@ -123,7 +124,7 @@ static void basic_monster_update(rg_entity* e,
         else if (target->fighter.hp > 0)
         {
             int xp; // ignore xp of enemies
-            entity_attack(e, target, logs, dead_entity, &xp);
+            entity_attack(e, target, logs, dead_entity, &xp, player_equipments);
         }
     }
 }
@@ -158,7 +159,12 @@ static void handle_player_movement(const rg_action* action,
         {
             rg_entity* dead_entity;
             int xp;
-            entity_attack(player, target, &data->logs, &dead_entity, &xp);
+            entity_attack(player,
+                          target,
+                          &data->logs,
+                          &dead_entity,
+                          &xp,
+                          &data->player_equipments);
             if (dead_entity != NULL)
             {
                 entity_kill(dead_entity, &data->logs);
@@ -248,14 +254,21 @@ static void handle_entity_idle()
 
 static void handle_entity_follow_player(rg_entity* e,
                                         rg_entity* target,
+                                        rg_player_equipments* player_equipments,
                                         rg_fov_map* fov_map,
                                         rg_map* game_map,
                                         rg_entity_array* entities,
                                         rg_turn_logs* logs,
                                         rg_entity** dead_entity)
 {
-    basic_monster_update(
-      e, target, fov_map, game_map, entities, logs, dead_entity);
+    basic_monster_update(e,
+                         target,
+                         player_equipments,
+                         fov_map,
+                         game_map,
+                         entities,
+                         logs,
+                         dead_entity);
 }
 
 static void handle_entity_attack() {}
@@ -294,6 +307,7 @@ static void handle_entity_confused(rg_entity* e,
 
 static void enemy_state_update(rg_entity* e,
                                rg_entity* target,
+                               rg_player_equipments* player_equipments,
                                rg_fov_map* fov_map,
                                rg_map* game_map,
                                rg_entity_array* entities,
@@ -307,8 +321,14 @@ static void enemy_state_update(rg_entity* e,
         // no-op
         break;
     case ENTITY_STATE_FOLLOW_PLAYER:
-        handle_entity_follow_player(
-          e, target, fov_map, game_map, entities, logs, dead_entity);
+        handle_entity_follow_player(e,
+                                    target,
+                                    player_equipments,
+                                    fov_map,
+                                    game_map,
+                                    entities,
+                                    logs,
+                                    dead_entity);
         break;
     case ENTITY_STATE_ATTACK:
         // no-op
@@ -633,6 +653,7 @@ static void game_next_level(rg_game_state_data* data)
 
 static void with_defaults(rg_game_state_data* data, rg_app* app)
 {
+    memset(data, 0, sizeof(*data));
     data->screen_width = app->screen_width;
     data->screen_height = app->screen_height;
 
@@ -727,7 +748,7 @@ void game_state_create_game(rg_game_state_data* data, rg_app* app)
     data->items.data = malloc(sizeof(*data->items.data) * data->items.capacity);
     ASSERT_M(data->items.data != NULL);
     data->items.len = 0;
-    rg_fighter fighter = { .hp = 30, .defence = 2, .power = 5, .max_hp = 30 };
+    rg_fighter fighter = { .hp = 100, .defence = 1, .power = 2, .max_hp = 100 };
     ARRAY_PUSH(&data->entities,
                ((rg_entity){
                  .x = 0,
@@ -753,6 +774,26 @@ void game_state_create_game(rg_game_state_data* data, rg_app* app)
 
     data->mouse_position.x = 0;
     data->mouse_position.y = 0;
+
+    {
+        // Starting weapon
+        ARRAY_PUSH(
+          &data->items,
+          ((rg_item){
+            .x = 0,
+            .y = 0,
+            .ch = '-',
+            .color = SKY,
+            .name = "Dagger",
+            .type = ITEM_EQUIPMENT,
+            .equipable = { .slot = EQUIPMENT_SLOT_MAIN_HAND, .power_bonus = 2 },
+            .visible_on_map = true,
+          }));
+        size_t idx = data->items.len - 1;
+        inventory_add_item(&data->inventory, &data->items, idx, NULL);
+        equipment_toggle_equip(
+          &data->player_equipments, &data->items.data[idx], NULL, NULL, NULL);
+    }
 }
 
 void game_state_destroy(rg_game_state_data* data)
@@ -968,6 +1009,7 @@ void game_state_draw(rg_app* app, rg_game_state_data* data)
                        header,
                        &data->items,
                        &data->inventory,
+                       &data->player_equipments,
                        menu_width,
                        &menu_height);
 
@@ -983,6 +1025,7 @@ void game_state_draw(rg_app* app, rg_game_state_data* data)
                        header,
                        &data->items,
                        &data->inventory,
+                       &data->player_equipments,
                        menu_width,
                        &menu_height);
         console_end(&data->menu);
@@ -1170,6 +1213,7 @@ void state_enemy_turn(const SDL_Event* event,
         rg_entity* dead_entity;
         enemy_state_update(e,
                            player,
+                           &data->player_equipments,
                            &data->fov_map,
                            &data->game_map,
                            &data->entities,
@@ -1434,109 +1478,4 @@ void state_show_character_turn(const SDL_Event* event,
         break;
     }
     // TODO
-}
-
-void equipment_toggle_equip(rg_player_equipments* e,
-                            rg_item* i,
-                            int* len,
-                            rg_action** actions,
-                            rg_item** items)
-{
-    bool res = len != NULL && actions != NULL && items != NULL;
-    if (res)
-    {
-        *len = 0;
-        *actions = malloc(sizeof(rg_action) * 2);
-        *items = malloc(sizeof(rg_item) * 2);
-    }
-    if (i->equipable.slot == EQUIPMENT_SLOT_MAIN_HAND)
-    {
-        if (e->main_hand == i)
-        {
-            if (res)
-            {
-                items[0] = i;
-                actions[0]->type = ACTION_DEEQUIPPED;
-                *len += 1;
-            }
-            e->main_hand = NULL;
-        }
-        else
-        {
-            if (e->main_hand != NULL && res)
-            {
-                items[0] = e->main_hand;
-                actions[0]->type = ACTION_DEEQUIPPED;
-                *len += 1;
-            }
-
-            if (res)
-            {
-                items[1] = i;
-                actions[1]->type = ACTION_EQUIPPED;
-                *len += 1;
-            }
-            e->main_hand = i;
-        }
-    }
-    else if (i->equipable.slot == EQUIPMENT_SLOT_OFF_HAND)
-    {
-        if (e->off_hand == i)
-        {
-            if (res)
-            {
-                items[0] = i;
-                actions[0]->type = ACTION_DEEQUIPPED;
-                *len += 1;
-            }
-            e->off_hand = NULL;
-        }
-        else
-        {
-            if (e->off_hand != NULL && res)
-            {
-                items[0] = e->off_hand;
-                actions[0]->type = ACTION_DEEQUIPPED;
-                *len += 1;
-            }
-
-            if (res)
-            {
-                items[1] = i;
-                actions[1]->type = ACTION_EQUIPPED;
-                *len += 1;
-            }
-            e->off_hand = i;
-        }
-    }
-}
-
-int equipment_get_max_hp_bonus(rg_player_equipments* e)
-{
-    int b = 0;
-    if (e->main_hand != NULL && e->main_hand->type == ITEM_EQUIPMENT)
-        b += e->main_hand->equipable.max_hp_bonus;
-    if (e->off_hand != NULL && e->off_hand->type == ITEM_EQUIPMENT)
-        b += e->off_hand->equipable.max_hp_bonus;
-    return b;
-}
-
-int equipment_get_power_bonus(rg_player_equipments* e)
-{
-    int b = 0;
-    if (e->main_hand != NULL && e->main_hand->type == ITEM_EQUIPMENT)
-        b += e->main_hand->equipable.power_bonus;
-    if (e->off_hand != NULL && e->off_hand->type == ITEM_EQUIPMENT)
-        b += e->off_hand->equipable.power_bonus;
-    return b;
-}
-
-int equipment_get_defense_bonus(rg_player_equipments* e)
-{
-    int b = 0;
-    if (e->main_hand != NULL && e->main_hand->type == ITEM_EQUIPMENT)
-        b += e->main_hand->equipable.defense_bonus;
-    if (e->off_hand != NULL && e->off_hand->type == ITEM_EQUIPMENT)
-        b += e->off_hand->equipable.defense_bonus;
-    return b;
 }

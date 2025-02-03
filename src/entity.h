@@ -6,6 +6,7 @@
 #include <SDL.h>
 
 #include "console.h"
+#include "equipment.h"
 #include "turn_log.h"
 
 #define MAX_ENTITY_NAME 50
@@ -101,7 +102,8 @@ void entity_attack(rg_entity *e,
                    rg_entity *target,
                    rg_turn_logs *logs,
                    rg_entity **dead_entity,
-                   int *xp);
+                   int *xp,
+                   rg_player_equipments *player_equipments);
 void entity_kill(rg_entity *e, rg_turn_logs *logs);
 float entity_get_distance(rg_entity *a, rg_entity *b);
 float entity_distance_to(rg_entity *a, int x, int y);

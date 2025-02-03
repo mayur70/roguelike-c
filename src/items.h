@@ -15,6 +15,8 @@ typedef enum rg_item_type
     ITEM_LIGHTNING,
     ITEM_FIRE_BALL,
     ITEM_CAST_CONFUSE,
+    ITEM_SWORD,
+    ITEM_SHIELD,
     ITEM_EQUIPMENT,
     ITEM_LEN,
 } rg_item_type;

@@ -57,12 +57,18 @@ void entity_attack(rg_entity* e,
                    rg_entity* target,
                    rg_turn_logs* logs,
                    rg_entity** dead_entity,
-                   int* xp)
+                   int* xp,
+                   rg_player_equipments* player_equipments)
 {
     ASSERT_M(dead_entity != NULL);
     *dead_entity = NULL;
-    int damage = e->fighter.power - target->fighter.defence;
-
+    int power = e->fighter.power;
+    int defence = target->fighter.defence;
+    if (e->type == ENTITY_PLAYER)
+        power += equipment_get_power_bonus(player_equipments);
+    if (target->type == ENTITY_PLAYER)
+        defence += equipment_get_defense_bonus(player_equipments);
+    int damage = power - defence;
     if (damage > 0)
     {
         bool is_dead;

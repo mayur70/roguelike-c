@@ -312,7 +312,7 @@ void map_place_entities(rg_map *m,
 
         if (!valid) continue;
 
-        int item_chances[4] = { 0 };
+        int item_chances[6] = { 0 };
         item_chances[0] = 35;
         {
             int levels[] = { 4 };
@@ -328,6 +328,16 @@ void map_place_entities(rg_map *m,
             int levels[] = { 2 };
             int vals[] = { 10 };
             item_chances[3] = val_from_dungeon_level(m->level, 1, levels, vals);
+        }
+        {
+            int levels[] = { 4 };
+            int vals[] = { 5 };
+            item_chances[4] = val_from_dungeon_level(m->level, 1, levels, vals);
+        }
+        {
+            int levels[] = { 8 };
+            int vals[] = { 15 };
+            item_chances[5] = val_from_dungeon_level(m->level, 1, levels, vals);
         }
         int idx = rand_int_choice_index(ITEM_LEN - 1, item_chances);
         ASSERT_M(idx >= 0);
@@ -403,6 +413,38 @@ void map_place_entities(rg_map *m,
                              .damage = 40,
                              .maximum_range = 5,
                              },
+                         .visible_on_map = true,
+                       }));
+            break;
+        }
+        case ITEM_SWORD:
+        {
+            ARRAY_PUSH(items,
+                       ((rg_item){
+                         .x = x,
+                         .y = y,
+                         .ch = '/',
+                         .color = SKY,
+                         .name = "Sword",
+                         .type = ITEM_EQUIPMENT,
+                         .equipable = { .slot = EQUIPMENT_SLOT_MAIN_HAND,
+                                        .power_bonus = 3 },
+                         .visible_on_map = true,
+                       }));
+            break;
+        }
+        case ITEM_SHIELD:
+        {
+            ARRAY_PUSH(items,
+                       ((rg_item){
+                         .x = x,
+                         .y = y,
+                         .ch = '[',
+                         .color = DARKER_ORANGE,
+                         .name = "Shield",
+                         .type = ITEM_EQUIPMENT,
+                         .equipable = { .slot = EQUIPMENT_SLOT_OFF_HAND,
+                                        .defense_bonus = 1 },
                          .visible_on_map = true,
                        }));
             break;

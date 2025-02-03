@@ -29,7 +29,7 @@ void inventory_add_item(rg_inventory* inventory,
                         size_t item_idx,
                         rg_turn_logs* logs)
 {
-    if (inventory->len >= inventory->capacity)
+    if (inventory->len >= inventory->capacity && logs != NULL)
     {
         const char* fmt = "You cannot carry any more, your inventory is full";
 
@@ -46,15 +46,17 @@ void inventory_add_item(rg_inventory* inventory,
 
     rg_item* item = &items->data[item_idx];
     item->visible_on_map = false;
-    const char* fmt = "You pick up the %s!";
-    int len = snprintf(NULL, 0, fmt, item->name);
-    char* buf = malloc(sizeof(char) * (len + 1));
-    snprintf(buf, len, fmt, item->name);
-    rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
-                                .text = buf,
-                                .color = BLUE };
-    turn_logs_push(logs, &entry);
-
+    if (logs != NULL)
+    {
+        const char* fmt = "You pick up the %s!";
+        int len = snprintf(NULL, 0, fmt, item->name);
+        char* buf = malloc(sizeof(char) * (len + 1));
+        snprintf(buf, len, fmt, item->name);
+        rg_turn_log_entry entry = { .type = TURN_LOG_MESSAGE,
+                                    .text = buf,
+                                    .color = BLUE };
+        turn_logs_push(logs, &entry);
+    }
     for (int i = 0; i < inventory->len; i++)
         ASSERT_M(inventory->data[i] != item_idx);
 
@@ -112,6 +114,7 @@ void inventory_draw(rg_console* c,
                     const char* header,
                     rg_items* items,
                     rg_inventory* inventory,
+                    rg_player_equipments* player_equipments,
                     int width,
                     int* height)
 {
@@ -127,7 +130,27 @@ void inventory_draw(rg_console* c,
         {
             size_t idx = inventory->data[i];
             rg_item* item = &items->data[idx];
-            options[i] = strdup(item->name);
+
+            if (player_equipments->main_hand == item)
+            {
+                const char* fmt = "%s (on main hand)";
+                int len = snprintf(NULL, 0, fmt, item->name);
+                options[i] = malloc(sizeof(char) * (len + 1));
+                snprintf(options[i], len + 1, fmt, item->name);
+                options[i][len] = '\0';
+            }
+            else if (player_equipments->off_hand == item)
+            {
+                const char* fmt = "%s (on off hand)";
+                int len = snprintf(NULL, 0, fmt, item->name);
+                options[i] = malloc(sizeof(char) * (len + 1));
+                snprintf(options[i], len + 1, fmt, item->name);
+                options[i][len] = '\0';
+            }
+            else
+            {
+                options[i] = strdup(item->name);
+            }
         }
         menu_draw(c, header, (int)inventory->len, options, width, height);
 

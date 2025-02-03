@@ -307,11 +307,11 @@ void item_use(rg_item* item,
     case ITEM_EQUIPMENT:
     {
         rg_game_state_data* state = data;
-        int len;
-        rg_action* actions;
-        rg_item* items;
+        int len = 0;
+        rg_action actions[2];
+        rg_item* items[2];
         equipment_toggle_equip(
-          &state->player_equipments, item, &len, &actions, &items);
+          &state->player_equipments, item, &len, actions, items);
 
         for (int i = 0; i < len; i++)
         {

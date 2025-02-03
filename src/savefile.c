@@ -29,6 +29,8 @@ const char* fmt_item_heal = " amount=%d";
 const char* fmt_item_lightning = " damage=%d range=%d";
 const char* fmt_item_fireball = " damage=%d radius=%d";
 const char* fmt_item_confuse = " duration=%d";
+const char* fmt_item_equipment =
+  " slot=%d power_bonus=%d defense_bonus=%d max_hp_bonus=%d";
 
 const char* fmt_inventory_len = "inventory_len=%zu";
 const char* fmt_inventory = "inventory id=%zu";
@@ -39,6 +41,8 @@ const char* fmt_tile = "tile=[%d,%d,%d]";
 
 const char* fmt_player_index = "playerid=%zu";
 const char* fmt_game_state = "game_state=%zu";
+const char* fmt_player_level =
+  "level current_level=%d current_xp=%d level_up_base=%d level_up_factor=%d";
 
 const char* fmt_turn_log_len = "log_len=%zu";
 const char* fmt_turn_log =
@@ -150,6 +154,15 @@ void item_save(rg_item* i, FILE* fp)
         color_save(&i->fireball.targeting_msg_color, fp);
         add_space(fp);
         text_save(i->fireball.targeting_msg, fp);
+        add_space(fp);
+        break;
+    case ITEM_EQUIPMENT:
+        fprintf(fp,
+                fmt_item_equipment,
+                i->equipable.slot,
+                i->equipable.power_bonus,
+                i->equipable.defense_bonus,
+                i->equipable.max_hp_bonus);
         add_space(fp);
         break;
     default:
@@ -278,6 +291,17 @@ char* item_load(rg_item* i, const char* buf)
         ptr = strstr(ptr, "color=");
         ptr = color_load(&i->fireball.targeting_msg_color, ptr);
         ptr = text_load((char*)i->fireball.targeting_msg, ptr + 1);
+        break;
+    }
+    case ITEM_EQUIPMENT:
+    {
+        int ret = sscanf_s(ptr,
+                           fmt_item_equipment,
+                           &i->equipable.slot,
+                           &i->equipable.power_bonus,
+                           &i->equipable.defense_bonus,
+                           &i->equipable.max_hp_bonus);
+        ASSERT_M(ret == 4);
         break;
     }
     default:
@@ -470,6 +494,13 @@ void savefile_save(rg_game_state_data* data, const char* path)
     fprintf(fp, "\n");
     fprintf(fp, fmt_game_state, data->game_state);
     fprintf(fp, "\n");
+    fprintf(fp,
+            fmt_player_level,
+            data->player_level.current_level,
+            data->player_level.current_xp,
+            data->player_level.level_up_base,
+            data->player_level.level_up_factor);
+    fprintf(fp, "\n");
     turn_log_save(&data->logs, fp);
     fclose(fp);
 }
@@ -496,9 +527,20 @@ void savefile_load(rg_game_state_data* data, const char* path)
     line = items_load(items, line);
     line = inventory_load(inventory, line);
     line = game_map_load(map, line);
-    sscanf_s(line, fmt_player_index, &data->player);
+    int ret = 0;
+    ret = sscanf_s(line, fmt_player_index, &data->player);
+    ASSERT_M(ret == 1);
     line = next_line(line);
-    sscanf_s(line, fmt_game_state, &data->game_state);
+    ret = sscanf_s(line, fmt_game_state, &data->game_state);
+    ASSERT_M(ret == 1);
+    line = next_line(line);
+    ret = sscanf_s(line,
+             fmt_player_level,
+             &data->player_level.current_level,
+             &data->player_level.current_xp,
+             &data->player_level.level_up_base,
+             &data->player_level.level_up_factor);
+    ASSERT_M(ret == 4);
     line = next_line(line);
     line = turn_logs_load(logs, line);
     if (logs->capacity == 0)
